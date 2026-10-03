@@ -22,4 +22,4 @@ Track separately:
 
 A share is not BTC. A block candidate is not a confirmed reward.
 
-Current network conditions are substantial: a live October 3, 2026 snapshot reports roughly 936 EH/s and difficulty around 132.72 T. This makes local CPU/GPU proof-of-work useful for engineering validation, but not evidence of a $100 payout.
+Current network conditions are substantial: October 3, 2026 sources report roughly 922–950 EH/s and difficulty around 132.72 T. This makes local CPU/GPU proof-of-work useful for engineering validation, but not evidence of a $100 payout.
