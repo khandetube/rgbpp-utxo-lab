@@ -62,14 +62,12 @@ impl BlockTemplate {
     }
 
     pub fn coinbase(&self, extra_nonce: u64, payout_script: Option<&ScriptBuf>) -> Transaction {
-        let mut tag = b"rgbpp-utxo-lab".to_vec();
-        tag.extend_from_slice(&extra_nonce.to_le_bytes());
-
-        let mut script_sig = Vec::with_capacity(1 + 8 + tag.len());
-        script_sig.push(self.height.min(0x7f) as u8);
-        script_sig.extend_from_slice(&self.height.to_le_bytes()[..((64 - self.height.leading_zeros()) as usize + 7) / 8].max(1));
-        script_sig.extend_from_slice(&tag);
-        script_sig.truncate(100);
+        let tag = extra_nonce.to_le_bytes();
+        let script_sig = bitcoin::script::Builder::new()
+            .push_int(self.height as i64)
+            .push_slice(b"rgbpp-utxo-lab")
+            .push_slice(tag)
+            .into_script();
 
         let mut outputs = Vec::new();
         if let Some(script) = payout_script {
