@@ -2,7 +2,7 @@ use bitcoin_pow::route_orchestrator::{Orchestrator, OrchestratorConfig};
 
 fn main() {
     let route_count = std::env::var("LOGICAL_ROUTE_COUNT")
-        .ok().and_then(|v| v.parse().ok()).unwrap_or(100_000u64);
+        .ok().and_then(|v| v.parse().ok()).unwrap_or(500_000u64);
     let shard_count = std::env::var("ROUTE_SHARD_COUNT")
         .ok().and_then(|v| v.parse().ok()).unwrap_or(1_000u32);
     let max_live_sessions = std::env::var("MAX_LIVE_STRATUM_SESSIONS")
