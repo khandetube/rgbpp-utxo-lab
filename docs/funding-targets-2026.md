@@ -134,3 +134,12 @@ Official CKB ecosystem activity remains active. The latest Nervos Talk feed incl
 ### Current evidence rule
 
 The existence of active or recently approved projects is evidence that these programs are operating; it is **not** evidence that this repository has been accepted or funded. Any future funding amount must be treated as uncommitted until written approval is received, and as received funding only after independently verifiable on-chain payment.
+
+
+## 9. OpenSats current application window — 2026-10-03
+
+The official OpenSats General Fund currently says applications open during the first two months of each quarter, and it funds Bitcoin developers and FOSS projects that Bitcoin depends on. The current date is October 3, so Q4's stated application window is open.
+
+**Fit for this repository:** conditional. The proposal must focus on the actual Bitcoin/UTXO infrastructure contribution and its open-source dependency value. It must not present CKB/RGB++ work as Bitcoin Core work.
+
+**Application gate:** use the live-testnet evidence plus a clearly scoped Bitcoin/UTXO deliverable. Do not claim acceptance or funding until OpenSats provides a written decision.
