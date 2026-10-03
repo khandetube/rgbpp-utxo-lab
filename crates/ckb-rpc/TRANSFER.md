@@ -25,4 +25,6 @@ Broadcast only after independently verifying sender balance, receiver address, n
 
     CKB_SENDER_PRIVATE_KEY=... CKB_RECEIVER_ADDRESS=ckt1... CKB_BROADCAST=true cargo run -p ckb-rpc --example transfer_testnet
 
+**Broadcast safety:** when `CKB_BROADCAST=true`, the implementation accepts only the official CKB Testnet RPC `https://testnet.ckb.dev`. Build-only mode may use a custom/local RPC. This prevents an accidental mainnet broadcast through an overridden RPC endpoint.
+
 The implementation follows the official SDK pattern using CapacityTransferBuilder, CapacityBalancer, DefaultCellCollector, dependency resolvers, and SecpSighashUnlocker.
