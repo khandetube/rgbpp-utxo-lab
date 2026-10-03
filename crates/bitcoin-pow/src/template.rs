@@ -184,7 +184,11 @@ mod tests {
         assert!(block.txdata[0].is_coinbase());
         assert_eq!(block.header.prev_blockhash, template.previous_blockhash);
         assert_eq!(block.header.merkle_root, block.txdata[0].compute_txid().into());
-        assert!(verify_candidate(&block, template.target));
+        let solution = crate::mine_header(block.header, template.target);
+        assert!(solution.attempts > 0);
+        let mut solved = block;
+        solved.header.nonce = solution.nonce;
+        assert!(verify_candidate(&solved, template.target));
     }
 
     #[test]
