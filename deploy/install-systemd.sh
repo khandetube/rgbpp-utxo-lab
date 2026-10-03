@@ -22,9 +22,14 @@ if [[ ! -f /etc/rgbpp-utxo-lab/miner.env ]]; then
 fi
 
 install -m 0644 "$REPO_DIR/deploy/rgbpp-stratum-miner.service" "/etc/systemd/system/$SERVICE_NAME.service"
+install -m 0644 "$REPO_DIR/deploy/rgbpp-stratum-watchdog.service" /etc/systemd/system/rgbpp-stratum-watchdog.service
+install -m 0644 "$REPO_DIR/deploy/rgbpp-stratum-watchdog.timer" /etc/systemd/system/rgbpp-stratum-watchdog.timer
 systemctl daemon-reload
 systemctl enable "$SERVICE_NAME"
+systemctl enable rgbpp-stratum-watchdog.timer
 
 echo "Installation complete."
 echo "Edit /etc/rgbpp-utxo-lab/miner.env, then run:"
 echo "  systemctl start $SERVICE_NAME"
+echo "  systemctl start rgbpp-stratum-watchdog.timer"
+echo "  systemctl status rgbpp-stratum-watchdog.timer"
