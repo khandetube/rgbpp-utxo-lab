@@ -44,10 +44,10 @@ __kernel void sha256d_header(__global const u8 *header_template,__global u8 *dig
   u32 s1[8]={0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19};
   u8 block[64]; for(int i=0;i<64;i++) block[i]=first[i]; sha256_compress(block,s1);
   for(int i=0;i<16;i++) block[i]=first[64+i]; block[16]=0x80; for(int i=17;i<56;i++) block[i]=0;
-  for(int i=0;i<8;i++) block[56+i]=(u8)(640>>(56-8*i)); sha256_compress(block,s1);
+  const ulong bitlen=640; for(int i=0;i<8;i++) block[56+i]=(u8)(bitlen>>(56-8*i)); sha256_compress(block,s1);
   u8 d1[32]; for(int i=0;i<8;i++) store_be(d1+4*i,s1[i]);
   u32 s2[8]={0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19};
   for(int i=0;i<32;i++) block[i]=d1[i]; block[32]=0x80; for(int i=33;i<56;i++) block[i]=0;
-  for(int i=0;i<8;i++) block[56+i]=(u8)(256>>(56-8*i)); sha256_compress(block,s2);
+  const ulong digest_bits=256; for(int i=0;i<8;i++) block[56+i]=(u8)(digest_bits>>(56-8*i)); sha256_compress(block,s2);
   for(int i=0;i<8;i++) store_be(digests[gid*32+4*i],s2[i]); nonces[gid]=nonce;
 }
