@@ -5,7 +5,6 @@ use bitcoin::{
     absolute, block, Amount, Block, BlockHash, ScriptBuf, Sequence, Transaction, TxIn, TxMerkleNode,
     TxOut, Txid, Witness,
 };
-use bitcoin::pow::{CompactTarget, Target};
 use serde_json::Value;
 use std::error::Error;
 
@@ -46,9 +45,10 @@ impl BlockTemplate {
                 Ok(deserialize(&hex::decode(data)?)?)
             }).collect::<Result<Vec<Transaction>, BoxError>>()?;
 
-        let default_witness_commitment = value["default_witness_commitment"]
-            .as_str().map(|s| Ok(ScriptBuf::from_bytes(hex::decode(s)?)))
-            .transpose()?;
+        let default_witness_commitment = match value["default_witness_commitment"].as_str() {
+            Some(s) => Some(ScriptBuf::from_bytes(hex::decode(s)?)),
+            None => None,
+        };
 
         Ok(Self {
             height,
