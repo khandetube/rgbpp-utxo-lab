@@ -111,7 +111,11 @@ impl StratumJob {
     }
 
     pub fn hash_meets_share_target(hash: &[u8; 32], target: &BigUint) -> bool {
-        &BigUint::from_bytes_be(hash) <= target
+        // SHA256d returns the digest in internal byte order. Stratum/Bitcoin
+        // targets are compared against the displayed (big-endian) hash value.
+        let mut displayed = *hash;
+        displayed.reverse();
+        BigUint::from_bytes_be(&displayed) <= *target
     }
 
     fn coinbase(&self, session: &StratumSession, extranonce2: &[u8]) -> Vec<u8> {
@@ -287,6 +291,21 @@ mod tests {
     }
 
     #[test]
+    #[test]
+    fn share_target_uses_displayed_hash_byte_order() {
+        let target = BigUint::from_bytes_be(&[0xff; 32]);
+        let mut digest = [0u8; 32];
+        digest[0] = 1;
+        assert!(StratumJob::hash_meets_share_target(&digest, &target));
+
+        let target = BigUint::from(1u8);
+        let mut digest = [0u8; 32];
+        digest[31] = 1;
+        assert!(StratumJob::hash_meets_share_target(&digest, &target));
+        digest[31] = 2;
+        assert!(!StratumJob::hash_meets_share_target(&digest, &target));
+    }
+
     fn notify_parsing_and_target_conversion_are_consistent() {
         let params = vec![
             Value::String("job-1".into()),
