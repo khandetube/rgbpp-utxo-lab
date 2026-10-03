@@ -17,5 +17,7 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo test --workspace
       - run: cargo check --workspace
+      - name: Compile standalone Stratum miner
+        run: cargo check -p bitcoin-pow --bin stratum-miner
       - name: Verify live Bitcoin Testnet3 block header
         run: cargo run -p bitcoin-pow --bin bitcoin-pow --release
