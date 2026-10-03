@@ -66,6 +66,14 @@ if (broadcast && !broadcastConfirmation) {
 if (!/^https:\/\//i.test(btcApiUrl)) {
   throw new Error("BTC_ASSETS_API_URL must use HTTPS");
 }
+if (!/^https:\/\//i.test(btcApiOrigin)) {
+  throw new Error("BTC_ASSETS_API_ORIGIN must use HTTPS");
+}
+if (!/^0x[0-9a-f]{64}$/i.test(udtTypeArgs)) {
+  throw new Error(
+    "UDT_TYPE_ARGS must be a 32-byte 0x-prefixed hex token identifier",
+  );
+}
 
 if (!Object.values(AddressType).includes(btcAddressType)) {
   throw new Error(`Unsupported BTC address type: ${btcAddressType}`);
@@ -142,12 +150,12 @@ ckbPartialTx = await withTimeout(
 const { psbt, indexedCkbPartialTx } = await withTimeout(
   "Bitcoin PSBT construction",
   btcWallet.buildPsbt({
-  ckbPartialTx,
-  ckbClient,
-  rgbppUdtClient,
-  btcChangeAddress: btcAddress,
-  receiverBtcAddresses: [receiverAddress],
-  feeRate,
+    ckbPartialTx,
+    ckbClient,
+    rgbppUdtClient,
+    btcChangeAddress: btcAddress,
+    receiverBtcAddresses: [receiverAddress],
+    feeRate,
   }),
 );
 
