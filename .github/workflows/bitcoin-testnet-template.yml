@@ -1,0 +1,42 @@
+name: Bitcoin Testnet3 Mining Template
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate-template:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Query operator-controlled Bitcoin Core Testnet3
+        env:
+          RPC_URL: ${{ secrets.BITCOIN_TESTNET_RPC_URL }}
+          RPC_USER: ${{ secrets.BITCOIN_TESTNET_RPC_USER }}
+          RPC_PASSWORD: ${{ secrets.BITCOIN_TESTNET_RPC_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$RPC_URL"
+          test -n "$RPC_USER"
+          test -n "$RPC_PASSWORD"
+          response="$(curl --fail --silent --show-error --max-time 20 --user "$RPC_USER:$RPC_PASSWORD" \
+            -H 'content-type: application/json' \
+            --data '{"jsonrpc":"1.0","id":"rgbpp-utxo-lab","method":"getblocktemplate","params":[{"rules":["segwit"]}]}' \
+            "$RPC_URL")"
+          printf '%s' "$response" | node -e '
+            let s="";
+            process.stdin.on("data", d => s += d);
+            process.stdin.on("end", () => {
+              const x=JSON.parse(s);
+              if (x.error) throw new Error(JSON.stringify(x.error));
+              const r=x.result;
+              for (const k of ["height","previousblockhash","bits","target","curtime","mintime","transactions","noncerange"]) {
+                if (r[k] === undefined) throw new Error(`missing template field: ${k}`);
+              }
+              if (!Array.isArray(r.transactions)) throw new Error("transactions is not an array");
+              if (r.previousblockhash.length !== 64) throw new Error("invalid previous block hash");
+              if (r.bits.length !== 8 || r.target.length !== 64) throw new Error("invalid target encoding");
+              console.log(`testnet3_template=ok height=${r.height} tx_count=${r.transactions.length} bits=${r.bits} target=${r.target}`);
+            });
+          '
