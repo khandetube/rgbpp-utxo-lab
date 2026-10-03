@@ -7,23 +7,26 @@ use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let endpoint=env::var("STRATUM_URL").unwrap_or_else(|_| "solo.ckpool.org:3333".into());
+    let endpoints=env::var("STRATUM_URLS").ok().map(|v| v.split(',').map(str::trim).filter(|s|!s.is_empty()).map(str::to_owned).collect::<Vec<_>>()).filter(|v|!v.is_empty()).unwrap_or_else(|| vec![env::var("STRATUM_URL").unwrap_or_else(|_| "solo.ckpool.org:3333".into())]);
     let username=env::var("STRATUM_USERNAME").unwrap_or_else(|_| "bc1qrwhe5l4wvx86g6rs4n3tpyr85j0xr3cs6lex4d".into());
     let password=env::var("STRATUM_PASSWORD").unwrap_or_else(|_| "x".into());
     let threads=env::var("MINER_THREADS").ok().and_then(|v|v.parse().ok()).unwrap_or_else(||std::thread::available_parallelism().map(|n|n.get()).unwrap_or(1));
     let reconnect_secs=env::var("STRATUM_RECONNECT_SECS").ok().and_then(|v|v.parse().ok()).unwrap_or(5u64);
 
     println!("Bitcoin Stratum V1 miner");
-    println!("endpoint={endpoint}");
+    println!("endpoints={}",endpoints.join(","));
     println!("payout username={username}");
     println!("threads={threads}");
     println!("Uses an external operator-controlled machine; it is not a GitHub-hosted miner.");
 
+    let mut endpoint_index=0usize;
     loop {
-        match run_session(&endpoint,&username,&password,threads) {
-            Ok(()) => println!("server requested reconnect"),
-            Err(e) => eprintln!("session error: {e}"),
+        let endpoint=&endpoints[endpoint_index % endpoints.len()];
+        match run_session(endpoint,&username,&password,threads) {
+            Ok(()) => println!("server requested reconnect: {endpoint}"),
+            Err(e) => eprintln!("session error on {endpoint}: {e}"),
         }
+        endpoint_index=endpoint_index.wrapping_add(1);
         println!("reconnecting in {reconnect_secs}s...");
         std::thread::sleep(Duration::from_secs(reconnect_secs));
     }
