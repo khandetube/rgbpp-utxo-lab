@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@ckb-ccc/rgbpp": "0.0.0-canary-20260204233059",
-    "@ckb-ccc/shell": "1.1.21",
+    "@ckb-ccc/shell": "0.0.0-canary-20260204233059",
     "dotenv": "^16.4.7"
   },
   "devDependencies": {
