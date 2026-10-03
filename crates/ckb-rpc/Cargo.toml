@@ -1,0 +1,8 @@
+[package]
+name = "ckb-rpc"
+version = "0.1.0"
+edition = "2021"
+description = "Small CKB RPC adapter for the RGB++ UTXO Lab"
+
+[dependencies]
+ckb-sdk = "4.1.0"
