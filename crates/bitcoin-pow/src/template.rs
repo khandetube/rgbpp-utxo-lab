@@ -155,3 +155,53 @@ pub fn serialize_block(block: &Block) -> String {
 pub fn verify_candidate(block: &Block, target: Target) -> bool {
     target.is_met_by(block.header.block_hash())
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn parses_and_builds_a_minimal_template() {
+        let value = json!({
+            "height": 200,
+            "version": 1,
+            "previousblockhash": "0000000000000000000000000000000000000000000000000000000000000000",
+            "bits": "207fffff",
+            "target": "7fffff0000000000000000000000000000000000000000000000000000000000",
+            "curtime": 1700000000u64,
+            "mintime": 1699999900u64,
+            "coinbasevalue": 5000000000u64,
+            "transactions": []
+        });
+        let template = BlockTemplate::from_json(&value).unwrap();
+        let block = template.build_block(7, template.curtime, 0, None);
+        assert_eq!(block.txdata.len(), 1);
+        assert!(block.txdata[0].is_coinbase());
+        assert_eq!(block.header.prev_blockhash, template.previous_blockhash);
+        assert_eq!(block.header.merkle_root, block.txdata[0].compute_txid().into());
+        assert!(verify_candidate(&block, template.target));
+    }
+
+    #[test]
+    fn witness_commitment_adds_reserved_value() {
+        let value = json!({
+            "height": 201,
+            "version": 1,
+            "previousblockhash": "0000000000000000000000000000000000000000000000000000000000000000",
+            "bits": "207fffff",
+            "target": "7fffff0000000000000000000000000000000000000000000000000000000000",
+            "curtime": 1700000000u64,
+            "mintime": 1699999900u64,
+            "coinbasevalue": 5000000000u64,
+            "default_witness_commitment": "6a24aa21a9ed00000000000000000000000000000000000000000000000000000000000000",
+            "transactions": []
+        });
+        let template = BlockTemplate::from_json(&value).unwrap();
+        let coinbase = template.coinbase(1, None);
+        assert_eq!(coinbase.input[0].witness.len(), 1);
+        assert_eq!(coinbase.input[0].witness.first().unwrap().len(), 32);
+        assert!(coinbase.output.iter().any(|o| o.script_pubkey.to_bytes().starts_with(&[0x6a, 0x24, 0xaa, 0x21, 0xa9, 0xed])));
+    }
+}
