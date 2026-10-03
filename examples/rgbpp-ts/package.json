@@ -1,0 +1,16 @@
+{
+  "name": "rgbpp-transfer-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "transfer": "tsx transfer.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "rgbpp": "0.7.3"
+  },
+  "devDependencies": {
+    "tsx": "4.16.3",
+    "typescript": "5.4.3"
+  }
+}
