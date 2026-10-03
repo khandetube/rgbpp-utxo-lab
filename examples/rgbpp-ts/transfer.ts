@@ -39,6 +39,17 @@ const udtCellDepIndex = Number(process.env.UDT_CELL_DEP_INDEX ?? "0");
 const transferAmount = BigInt(process.env.RGBPP_TRANSFER_AMOUNT ?? "1");
 const feeRate = Number(process.env.RGBPP_FEE_RATE ?? "28");
 const broadcast = process.env.RGBPP_BROADCAST === "true";
+const broadcastConfirmation =
+  process.env.RGBPP_CONFIRM_TESTNET_BROADCAST === "YES";
+
+if (broadcast && !broadcastConfirmation) {
+  throw new Error(
+    "Broadcast is blocked. Set RGBPP_CONFIRM_TESTNET_BROADCAST=YES only after independently verifying the testnet receiver, asset, amount and fees.",
+  );
+}
+if (!/^https:\\/\\//i.test(btcApiUrl)) {
+  throw new Error("BTC_ASSETS_API_URL must use HTTPS");
+}
 
 if (!Object.values(AddressType).includes(btcAddressType)) {
   throw new Error(`Unsupported BTC address type: ${btcAddressType}`);
