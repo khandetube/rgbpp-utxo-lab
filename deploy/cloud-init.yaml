@@ -25,6 +25,9 @@ write_files:
       STRATUM_RECONNECT_SECS=5
 
 runcmd:
+  - curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+  - /root/.cargo/bin/rustup default stable
+  - ln -sf /root/.cargo/bin/cargo /usr/local/bin/cargo
   - git clone https://github.com/khandetube/rgbpp-utxo-lab.git /opt/rgbpp-utxo-lab
   - cd /opt/rgbpp-utxo-lab && ./deploy/install-systemd.sh /opt/rgbpp-utxo-lab
   - systemctl enable --now rgbpp-stratum-miner
