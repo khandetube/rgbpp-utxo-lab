@@ -1,33 +1,63 @@
-use bitcoin::block::Version;
+use bitcoin::consensus::deserialize;
 use bitcoin::hashes::Hash;
-use bitcoin::pow::{CompactTarget, Target};
-use bitcoin::{BlockHash, TxMerkleNode};
-use bitcoin_pow::{hash_rate, mine_header, verify_header};
+use bitcoin::pow::Target;
+use bitcoin::BlockHash;
+use bitcoin_pow::verify_header;
+
+const TESTNET_API: &str = "https://mempool.space/testnet/api";
+
+fn get_text(url: &str) -> String {
+    reqwest::blocking::get(url)
+        .unwrap_or_else(|e| panic!("request failed for {url}: {e}"))
+        .error_for_status()
+        .unwrap_or_else(|e| panic!("HTTP error for {url}: {e}"))
+        .text()
+        .unwrap_or_else(|e| panic!("response body failed for {url}: {e}"))
+}
 
 fn main() {
-    // Deliberately bounded test difficulty: this is a real Bitcoin-style
-    // double-SHA256 PoW search, but it is not a mainnet mining target.
-    let bits = CompactTarget::from_consensus(0x1f0f_ffff);
-    let header = bitcoin::block::Header {
-        version: Version::from_consensus(1),
-        prev_blockhash: BlockHash::all_zeros(),
-        merkle_root: TxMerkleNode::all_zeros(),
-        time: 1_700_000_000,
-        bits,
-        nonce: 0,
-    };
-    let target = Target::from_compact(bits);
+    let height: u64 = get_text(&format!("{TESTNET_API}/blocks/tip/height"))
+        .trim()
+        .parse()
+        .expect("invalid Testnet3 tip height");
 
-    let solution = mine_header(header, target);
+    let block_hash_hex = get_text(&format!("{TESTNET_API}/block-height/{height}"))
+        .trim()
+        .to_owned();
 
-    let mut solved = header;
-    solved.nonce = solution.nonce;
+    let header_hex = get_text(&format!(
+        "{TESTNET_API}/block/{block_hash_hex}/header"
+    ))
+    .trim()
+    .to_owned();
 
-    println!("pow=valid");
-    println!("nonce={}", solution.nonce);
-    println!("hash={}", solution.hash);
-    println!("attempts={}", solution.attempts);
-    println!("elapsed_ms={}", solution.elapsed.as_millis());
-    println!("hashrate_hps={:.2}", hash_rate(solution.attempts, solution.elapsed));
-    println!("verified={}", verify_header(&solved, target));
+    let header_bytes = hex::decode(&header_hex).expect("invalid header hex");
+    assert_eq!(header_bytes.len(), 80, "Bitcoin block header must be 80 bytes");
+
+    let header: bitcoin::block::Header =
+        deserialize(&header_bytes).expect("failed to decode Bitcoin block header");
+
+    let calculated_hash = header.block_hash();
+    let reported_hash: BlockHash = block_hash_hex
+        .parse()
+        .expect("invalid reported block hash");
+
+    let target = Target::from_compact(header.bits);
+    let pow_valid = verify_header(&header, target);
+
+    println!("network=BitcoinTestnet3");
+    println!("height={height}");
+    println!("block_hash={calculated_hash}");
+    println!("reported_hash={reported_hash}");
+    println!("header_hex={header_hex}");
+    println!("version={}", header.version.to_consensus());
+    println!("prev_blockhash={}", header.prev_blockhash);
+    println!("merkle_root={}", header.merkle_root);
+    println!("time={}", header.time);
+    println!("bits={:#x}", header.bits.to_consensus());
+    println!("nonce={}", header.nonce);
+    println!("pow_valid={pow_valid}");
+
+    assert_eq!(calculated_hash, reported_hash, "header hash mismatch");
+    assert!(pow_valid, "real Testnet3 header does not satisfy its target");
 }
