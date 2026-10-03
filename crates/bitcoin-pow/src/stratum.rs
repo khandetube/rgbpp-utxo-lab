@@ -291,7 +291,6 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn share_target_uses_displayed_hash_byte_order() {
         let target = BigUint::from_bytes_be(&[0xff; 32]);
         let mut digest = [0u8; 32];
@@ -306,6 +305,7 @@ mod tests {
         assert!(!StratumJob::hash_meets_share_target(&digest, &target));
     }
 
+    #[test]
     fn notify_parsing_and_target_conversion_are_consistent() {
         let params = vec![
             Value::String("job-1".into()),
