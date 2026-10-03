@@ -1,7 +1,6 @@
 use bitcoin::consensus::deserialize;
 use bitcoin::pow::Target;
 use bitcoin::BlockHash;
-use bitcoin_pow::verify_header;
 
 const TESTNET_API: &str = "https://mempool.space/testnet/api";
 
@@ -42,7 +41,7 @@ fn main() {
     let reported_hash: BlockHash = block_hash_hex.parse().expect("invalid reported block hash");
 
     let target = Target::from_compact(header.bits);
-    let pow_valid = verify_header(&header, target);
+    let pow_valid = target.is_met_by(header.block_hash());
 
     println!("network=BitcoinTestnet3");
     println!("height={height}");
