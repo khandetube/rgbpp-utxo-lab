@@ -20,7 +20,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: examples/rgbpp-ts/pnpm-lock.yaml
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm run typecheck
