@@ -204,7 +204,7 @@ mod tests {
         let template = BlockTemplate::from_json(&value).unwrap();
         let coinbase = template.coinbase(1, None);
         assert_eq!(coinbase.input[0].witness.len(), 1);
-        assert_eq!(coinbase.input[0].witness.first().unwrap().len(), 32);
+        assert_eq!(coinbase.input[0].witness.iter().next().unwrap().len(), 32);
         assert!(coinbase.output.iter().any(|o| o.script_pubkey.to_bytes().starts_with(&[0x6a, 0x24, 0xaa, 0x21, 0xa9, 0xed])));
     }
 }
