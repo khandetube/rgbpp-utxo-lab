@@ -1,5 +1,4 @@
 use bitcoin::consensus::deserialize;
-use bitcoin::hashes::Hash;
 use bitcoin::pow::Target;
 use bitcoin::BlockHash;
 use bitcoin_pow::verify_header;
