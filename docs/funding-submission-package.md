@@ -150,3 +150,36 @@ At the time of this document:
 - [ ] Record funding only after written approval.
 - [ ] Record received crypto funding only after independently verifying the on-chain payment.
 
+
+
+## Current funding-environment update — 2026-10-03
+
+The current Spark ecosystem shows active developer-tooling and infrastructure proposals. Recent committee decisions also demonstrate that delivery quality, real testnet verification and actual ecosystem integration are material acceptance criteria.
+
+For this project, the funding request remains milestone-based and evidence-first. The repository identity should match the GitHub account used for any identity verification, and each milestone should point to reproducible public evidence.
+
+### Current technical evidence gate
+
+1. Green Rust and TypeScript CI.
+2. Public live Testnet3 header/PoW verification.
+3. Isolated Regtest block-construction and submission coverage.
+4. Legitimate BTC Testnet3 and CKB Testnet resources.
+5. One real RGB++ Testnet3 transfer.
+6. Independently verifiable BTC and CKB transaction records.
+7. Public verification report.
+
+No funding, approval, investor commitment or payment is recorded until independently verified.
+
+### Route priority
+
+**CKB Spark / ecosystem funding:** directly aligned with the project's CKB/RGB++ developer-infrastructure scope. Submit only through the current official Spark process and use the verified GitHub identity associated with the applicant.
+
+**Tether Developer Grants:** conditional secondary route. Apply only when a concrete current task genuinely matches the repository's Bitcoin/UTXO tooling.
+
+**Bitcoin open-source funding:** conditional. Any application must describe the actual Bitcoin contribution accurately and must not present CKB/RGB++ work as Bitcoin Core development.
+
+**CKB Community Fund DAO:** follow-on route after technical delivery and demonstrated ecosystem demand.
+
+### Evidence discipline
+
+Public source code, reproducible CI, live-chain records and independently verifiable transaction identifiers are the only acceptable evidence for completion claims. Simulated balances, hard-coded transaction identifiers and artificial adoption metrics are excluded.
