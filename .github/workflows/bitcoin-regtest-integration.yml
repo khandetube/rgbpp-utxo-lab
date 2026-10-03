@@ -1,0 +1,47 @@
+name: Bitcoin Regtest Mining Integration
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  regtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Bitcoin Core
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bitcoind bitcoin-cli
+      - name: Start isolated regtest node
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bitcoin"
+          bitcoind -regtest -daemon -datadir="$RUNNER_TEMP/bitcoin" -fallbackfee=0.0002
+          for i in $(seq 1 30); do
+            bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" getblockchaininfo >/dev/null && break
+            sleep 1
+          done
+          bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" createwallet "lab" >/dev/null
+          address="$(bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" -rpcwallet=lab getnewaddress)"
+          bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" generatetoaddress 101 "$address" >/dev/null
+      - name: Validate getblocktemplate and exercise miner build path
+        env:
+          BITCOIN_TESTNET_RPC_URL: http://127.0.0.1:18443
+          BITCOIN_TESTNET_RPC_USER: ""
+          BITCOIN_TESTNET_RPC_PASSWORD: ""
+          BITCOIN_TESTNET_SUBMIT: "NO"
+          BITCOIN_TESTNET_CONFIRM: "NO"
+          MAX_ATTEMPTS: "100000"
+        run: |
+          set -euo pipefail
+          cookie="$RUNNER_TEMP/bitcoin/regtest/.cookie"
+          export BITCOIN_TESTNET_RPC_USER="$(cut -d: -f1 "$cookie")"
+          export BITCOIN_TESTNET_RPC_PASSWORD="$(cut -d: -f2- "$cookie")"
+          cargo run -p bitcoin-pow --bin testnet3_miner --release
