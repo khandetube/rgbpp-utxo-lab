@@ -1,4 +1,5 @@
 pub mod route_orchestrator;
+pub mod pool_supervisor;
 pub mod stratum;
 pub mod template;
 
