@@ -1,3 +1,5 @@
+pub mod template;
+
 use bitcoin::blockdata::block::Header;
 use bitcoin::pow::Target;
 use sha2::{Digest, Sha256};
@@ -20,34 +22,20 @@ pub fn double_sha256(data: &[u8]) -> [u8; 32] {
 pub fn mine_header(mut header: Header, target: Target) -> PowSolution {
     let started = Instant::now();
     let mut attempts = 0u64;
-
     for nonce in 0..=u32::MAX {
         header.nonce = nonce;
         let hash = header.block_hash();
         attempts += 1;
-
         if target.is_met_by(hash) {
-            return PowSolution {
-                nonce,
-                hash,
-                attempts,
-                elapsed: started.elapsed(),
-            };
+            return PowSolution { nonce, hash, attempts, elapsed: started.elapsed() };
         }
     }
-
     panic!("nonce space exhausted without finding a valid proof");
-}
-
-pub fn verify_header(header: &Header, target: Target) -> bool {
-    target.is_met_by(header.block_hash())
 }
 
 pub fn hash_rate(attempts: u64, elapsed: Duration) -> f64 {
     let seconds = elapsed.as_secs_f64();
-    if seconds == 0.0 {
-        return 0.0;
-    }
+    if seconds == 0.0 { return 0.0; }
     attempts as f64 / seconds
 }
 
@@ -78,11 +66,9 @@ mod tests {
         };
         let target = Target::from_compact(header.bits);
         let solution = mine_header(header, target);
-
         let mut solved = header;
         solved.nonce = solution.nonce;
-
-        assert!(verify_header(&solved, target));
+        assert!(target.is_met_by(solved.block_hash()));
         assert_eq!(solved.block_hash(), solution.hash);
         assert!(solution.attempts > 0);
     }
