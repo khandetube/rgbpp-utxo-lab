@@ -7,7 +7,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ckb-ccc/rgbpp": "1.0.0",
+    "@ckb-ccc/rgbpp": "0.0.0-canary-20260204233059",
     "@ckb-ccc/shell": "1.1.21",
     "dotenv": "^16.4.7"
   },
