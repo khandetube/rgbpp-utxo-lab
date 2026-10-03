@@ -62,3 +62,21 @@ mod tests {
         assert_eq!(e, SelectionError::InsufficientFunds { available: 10, required: 11 });
     }
 }
+
+
+/// Parse and normalize a Bitcoin transaction outpoint using rust-bitcoin.
+pub fn parse_bitcoin_outpoint(value: &str) -> Result<bitcoin::OutPoint, bitcoin::transaction::ParseOutPointError> {
+    value.parse()
+}
+
+#[cfg(test)]
+mod bitcoin_tests {
+    use super::*;
+
+    #[test]
+    fn parses_bitcoin_outpoint() {
+        let txid = "0000000000000000000000000000000000000000000000000000000000000001";
+        let outpoint = parse_bitcoin_outpoint(&format!("{txid}:0")).unwrap();
+        assert_eq!(outpoint.vout, 0);
+    }
+}
