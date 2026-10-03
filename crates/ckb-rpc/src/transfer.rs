@@ -104,19 +104,18 @@ pub fn build_and_optionally_send(config: TransferConfig) -> Result<H256> {
 }
 
 pub fn config_from_env() -> Result<TransferConfig> {
-    let rpc_url = env::var("CKB_RPC_URL").unwrap_or_else(|_| "https://testnet.ckb.dev".to_string());
+    let rpc_url =
+        env::var("CKB_RPC_URL").unwrap_or_else(|_| "https://testnet.ckb.dev".to_string());
     let sender_key = H256::from_str(
-        &env::var("CKB_SENDER_PRIVATE_KEY")
-            .context("CKB_SENDER_PRIVATE_KEY is required")?,
+        &env::var("CKB_SENDER_PRIVATE_KEY").context("CKB_SENDER_PRIVATE_KEY is required")?,
     )?;
     let receiver = Address::from_str(
-        &env::var("CKB_RECEIVER_ADDRESS")
-            .context("CKB_RECEIVER_ADDRESS is required")?,
+        &env::var("CKB_RECEIVER_ADDRESS").context("CKB_RECEIVER_ADDRESS is required")?,
     )
     .map_err(|error| anyhow!(error))?;
     let capacity = env::var("CKB_TRANSFER_AMOUNT")
         .unwrap_or_else(|_| "61".to_string())
-.parse::<HumanCapacity>()
+        .parse::<HumanCapacity>()
         .map_err(|error| anyhow!(error))?;
     let fee_rate = env::var("CKB_FEE_RATE")
         .unwrap_or_else(|_| "1000".to_string())
