@@ -1,0 +1,38 @@
+name: Bitcoin Testnet3 Block Miner
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_attempts:
+        description: "Maximum SHA256d attempts (0 = unlimited)"
+        required: true
+        default: "1000000"
+      submit:
+        description: "Submit a solved block to the configured operator-controlled Testnet3 node"
+        required: true
+        type: choice
+        options: ["NO", "YES"]
+        default: "NO"
+
+jobs:
+  mine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build and run guarded miner
+        env:
+          BITCOIN_TESTNET_RPC_URL: ${{ secrets.BITCOIN_TESTNET_RPC_URL }}
+          BITCOIN_TESTNET_RPC_USER: ${{ secrets.BITCOIN_TESTNET_RPC_USER }}
+          BITCOIN_TESTNET_RPC_PASSWORD: ${{ secrets.BITCOIN_TESTNET_RPC_PASSWORD }}
+          BITCOIN_MINER_SCRIPT_PUBKEY: ${{ secrets.BITCOIN_MINER_SCRIPT_PUBKEY }}
+          BITCOIN_TESTNET_SUBMIT: ${{ inputs.submit }}
+          BITCOIN_TESTNET_CONFIRM: ${{ inputs.submit == 'YES' && 'YES' || 'NO' }}
+          MAX_ATTEMPTS: ${{ inputs.max_attempts }}
+        run: |
+          set -euo pipefail
+          test -n "$BITCOIN_TESTNET_RPC_URL"
+          test -n "$BITCOIN_TESTNET_RPC_USER"
+          test -n "$BITCOIN_TESTNET_RPC_PASSWORD"
+          cargo run -p bitcoin-pow --bin testnet3_miner --release
