@@ -69,13 +69,12 @@ const btcWallet = new PrivateKeyRgbppBtcWallet(
 );
 
 const btcAddress = await btcWallet.getAddress();
-const ckbRgbppUnlockSigner = new CkbRgbppUnlockSigner(
+const ckbRgbppUnlockSigner = new CkbRgbppUnlockSigner({
   ckbClient,
-  btcAddress,
-  btcWallet,
-  btcWallet,
-  rgbppUdtClient.getRgbppScriptInfos(),
-);
+  rgbppBtcAddress: btcAddress,
+  btcDataSource: btcWallet,
+  scriptInfos: rgbppUdtClient.getRgbppScriptInfos(),
+});
 
 const udt = new ccc.udt.Udt(
   {
