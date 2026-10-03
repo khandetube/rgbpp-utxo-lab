@@ -82,6 +82,8 @@ impl BlockTemplate {
             outputs.push(TxOut { value: Amount::from_sat(0), script_pubkey: commitment.clone() });
         }
 
+        assert!(script_sig.len() <= 100, "coinbase scriptSig exceeds consensus limit");
+
         let witness = if self.default_witness_commitment.is_some() {
             Witness::from_slice(&[vec![0u8; 32]])
         } else {
@@ -210,5 +212,24 @@ mod tests {
         assert_eq!(coinbase.input[0].witness.len(), 1);
         assert_eq!(coinbase.input[0].witness.iter().next().unwrap().len(), 32);
         assert!(coinbase.output.iter().any(|o| o.script_pubkey.to_bytes().starts_with(&[0x6a, 0x24, 0xaa, 0x21, 0xa9, 0xed])));
+    }
+
+    #[test]
+    fn payout_coinbase_uses_template_reward_exactly() {
+        let value = json!({
+            "height": 202,
+            "version": 1,
+            "previousblockhash": "0000000000000000000000000000000000000000000000000000000000000000",
+            "bits": "207fffff",
+            "curtime": 1700000000u64,
+            "mintime": 1699999900u64,
+            "coinbasevalue": 123456u64,
+            "transactions": []
+        });
+        let template = BlockTemplate::from_json(&value).unwrap();
+        let script = ScriptBuf::new_op_return(b"payout-test");
+        let coinbase = template.coinbase(9, Some(&script));
+        assert_eq!(coinbase.output[0].value.to_sat(), 123456);
+        assert_eq!(coinbase.output[0].script_pubkey, script);
     }
 }
