@@ -63,3 +63,5 @@ console.log("network=", network);
 console.log("ckb_testnet_tip=", tip.toString());
 console.log("xu_dt_cell_deps=", xuDtScriptInfo.cellDeps.length);
 console.log("rgbpp_script_infos=", rgbppScriptNames.join(","));
+
+process.exit(0);
