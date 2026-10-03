@@ -37,7 +37,9 @@ impl BlockTemplate {
         let bits = CompactTarget::from_consensus(u32::from_str_radix(bits_hex, 16)?);
         let target = Target::from_compact(bits);
         let target_json = value["target"].as_str().ok_or("missing target")?;
-        if target_json.len() != 64 { return Err("target must be 32 bytes of hex".into()); }
+        if target_json.len() != 64 {
+            return Err("target must be 32 bytes of hex".into());
+        }
         let parsed_target = bitcoin::uint::Uint256::from_str_radix(target_json, 16).map_err(|_| "invalid target")?;
         if parsed_target != target.to_uint256() { return Err("bits/target mismatch".into()); }
         let curtime = value["curtime"].as_u64().ok_or("missing curtime")? as u32;
