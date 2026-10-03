@@ -224,7 +224,6 @@ pub fn mine_stratum_job(
             });
         }
     });
-    let _=handles;
     result.lock().unwrap().take()
 }
 
