@@ -86,7 +86,7 @@ const udtScript = await ccc.Script.fromKnownScript(
   udtTypeArgs,
 );
 const udt = new ccc.udt.Udt(
-  xuDtScriptInfo.cellDeps[0].cellDep,
+  xuDtScriptInfo.cellDeps[0].cellDep.outPoint,
   udtScript,
 );
 
