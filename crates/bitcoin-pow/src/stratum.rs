@@ -376,6 +376,17 @@ mod tests {
     }
 
     #[test]
+    #[test]
+    fn version_rolling_preserves_unmasked_bits() {
+        let base = [0x12, 0x34, 0x56, 0x78];
+        let mask = 0x0000ff00;
+        let rolled = StratumJob::rolled_version(&base, mask, 0x0000ab00).unwrap();
+        let base_value = u32::from_le_bytes(base);
+        let rolled_value = u32::from_le_bytes(rolled);
+        assert_eq!(rolled_value & !mask, base_value & !mask);
+        assert_eq!(rolled_value & mask, 0x0000ab00);
+    }
+
     fn notify_parsing_and_target_conversion_are_consistent() {
         let params = vec![
             Value::String("job-1".into()),
