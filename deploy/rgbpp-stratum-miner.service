@@ -15,9 +15,8 @@ KillSignal=SIGINT
 TimeoutStopSec=15
 NoNewPrivileges=true
 PrivateTmp=true
-ProtectSystem=full
+ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/rgbpp-utxo-lab
 
 [Install]
 WantedBy=multi-user.target
