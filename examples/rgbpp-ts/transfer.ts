@@ -54,7 +54,11 @@ const receiverAddress = required("RGBPP_RECEIVER_BTC_ADDRESS");
 const udtTypeArgs = required("UDT_TYPE_ARGS");
 const transferAmount = BigInt(process.env.RGBPP_TRANSFER_AMOUNT ?? "1");
 const feeRate = Number(process.env.RGBPP_FEE_RATE ?? "28");
-const broadcast = process.env.RGBPP_BROADCAST === "true";
+const broadcastValue = (process.env.RGBPP_BROADCAST ?? "false").trim().toLowerCase();
+if (broadcastValue !== "true" && broadcastValue !== "false") {
+  throw new Error("RGBPP_BROADCAST must be exactly true or false");
+}
+const broadcast = broadcastValue === "true";
 const broadcastConfirmation =
   process.env.RGBPP_CONFIRM_TESTNET_BROADCAST === "YES";
 
@@ -79,7 +83,10 @@ if (!Object.values(AddressType).includes(btcAddressType)) {
   throw new Error(`Unsupported BTC address type: ${btcAddressType}`);
 }
 if (transferAmount <= 0n) throw new Error("RGBPP_TRANSFER_AMOUNT must be > 0");
-if (!Number.isFinite(feeRate) || feeRate <= 0) {
+if (!/^\\d+$/.test(process.env.RGBPP_TRANSFER_AMOUNT ?? "1")) {
+  throw new Error("RGBPP_TRANSFER_AMOUNT must be a positive integer");
+}
+if (!Number.isInteger(feeRate) || feeRate <= 0) {
   throw new Error("RGBPP_FEE_RATE must be > 0");
 }
 
