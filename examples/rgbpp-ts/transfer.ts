@@ -73,7 +73,7 @@ const ckbRgbppUnlockSigner = new CkbRgbppUnlockSigner({
   ckbClient,
   rgbppBtcAddress: btcAddress,
   btcDataSource: btcWallet,
-  scriptInfos: rgbppUdtClient.getRgbppScriptInfos(),
+  scriptInfos: await rgbppUdtClient.getRgbppScriptInfos(),
 });
 
 const udt = new ccc.udt.Udt(
