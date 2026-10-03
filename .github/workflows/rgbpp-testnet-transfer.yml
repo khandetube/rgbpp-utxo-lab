@@ -1,0 +1,51 @@
+name: RGB++ Testnet Transfer
+
+on:
+  workflow_dispatch:
+    inputs:
+      broadcast:
+        description: "Broadcast the Bitcoin Testnet3 transaction"
+        required: true
+        default: false
+        type: boolean
+      confirm_broadcast:
+        description: "Type YES only after independently verifying receiver, asset, amount and fees"
+        required: true
+        default: ""
+        type: string
+
+jobs:
+  transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: examples/rgbpp-ts
+    env:
+      UTXO_BASED_CHAIN_NAME: BitcoinTestnet3
+      UTXO_BASED_CHAIN_PRIVATE_KEY: ${{ secrets.UTXO_BASED_CHAIN_PRIVATE_KEY }}
+      UTXO_BASED_CHAIN_ADDRESS_TYPE: ${{ secrets.UTXO_BASED_CHAIN_ADDRESS_TYPE }}
+      CKB_SECP256K1_PRIVATE_KEY: ${{ secrets.CKB_SECP256K1_PRIVATE_KEY }}
+      BTC_ASSETS_API_URL: https://api-testnet.rgbpp.com
+      BTC_ASSETS_API_TOKEN: ${{ secrets.BTC_ASSETS_API_TOKEN }}
+      BTC_ASSETS_API_ORIGIN: ${{ secrets.BTC_ASSETS_API_ORIGIN }}
+      UDT_TYPE_ARGS: ${{ secrets.UDT_TYPE_ARGS }}
+      RGBPP_RECEIVER_BTC_ADDRESS: ${{ secrets.RGBPP_RECEIVER_BTC_ADDRESS }}
+      RGBPP_TRANSFER_AMOUNT: ${{ vars.RGBPP_TRANSFER_AMOUNT || '1' }}
+      RGBPP_FEE_RATE: ${{ vars.RGBPP_FEE_RATE || '28' }}
+      RGBPP_BROADCAST: ${{ inputs.broadcast }}
+      RGBPP_CONFIRM_TESTNET_BROADCAST: ${{ inputs.confirm_broadcast }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: examples/rgbpp-ts/pnpm-lock.yaml
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm run typecheck
+      - run: pnpm run preflight
+      - run: pnpm run transfer
