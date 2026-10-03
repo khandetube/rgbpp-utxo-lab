@@ -1,6 +1,8 @@
 use ckb_sdk::rpc::CkbRpcClient;
 use serde_json::{json, Value};
 
+pub mod collector;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CkbNodeInfo {
     pub rpc_url: String,
