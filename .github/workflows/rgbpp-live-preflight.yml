@@ -2,11 +2,6 @@ name: RGB++ Live Testnet Preflight
 
 on:
   workflow_dispatch:
-  push:
-    branches: ["main"]
-    paths:
-      - "examples/rgbpp-ts/**"
-      - ".github/workflows/rgbpp-live-preflight.yml"
 
 jobs:
   public-preflight:
@@ -24,4 +19,4 @@ jobs:
         with:
           node-version: 22
       - run: pnpm install --no-frozen-lockfile
-      - run: timeout --signal=TERM --kill-after=10s 120s pnpm run public-preflight
+      - run: pnpm run public-preflight
