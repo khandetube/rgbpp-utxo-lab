@@ -22,6 +22,7 @@ A transparent, reproducible engineering reference for developers building Bitcoi
 - public and private testnet preflight paths
 - guarded GitHub Actions workflow for reproducible Testnet3 execution
 - reproducible CI and live-testnet runbook
+- publication-ready live-testnet verification report template
 
 ## RGB++ transfer path
 
@@ -33,7 +34,7 @@ The implementation follows the RGB++ SDK model; protocol-specific behavior is ke
 
 See [docs/live-testnet-verification.md](docs/live-testnet-verification.md).
 
-The project never fabricates transaction IDs, balances, assets, credentials or successful broadcasts. A real end-to-end claim is made only after a real Testnet3 transaction is independently verifiable.
+The project never fabricates transaction IDs, balances, assets, credentials or successful broadcasts. A real end-to-end claim is made only after a real Testnet3 transaction is independently verifiable. The evidence format is documented in [docs/live-testnet-verification-report-template.md](docs/live-testnet-verification-report-template.md).
 
 ### GitHub Actions execution
 
