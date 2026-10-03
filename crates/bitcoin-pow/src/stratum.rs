@@ -28,6 +28,8 @@ pub struct StratumJob {
 pub struct StratumSession {
     pub extranonce1: Vec<u8>,
     pub extranonce2_size: usize,
+    /// Last server-negotiated version-rolling mask (BIP310).
+    pub version_mask: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -157,6 +159,12 @@ impl StratumJob {
         Ok(header)
     }
 
+    pub fn rolled_version(base_version: &[u8], mask: u32, bits: u32) -> Result<[u8;4], StratumError> {
+        if base_version.len() != 4 { return Err(StratumError::Protocol("version must be 4 bytes".into())); }
+        let base = u32::from_le_bytes(base_version.try_into().unwrap());
+        Ok(((base & !mask) | (bits & mask)).to_le_bytes())
+    }
+
     pub fn nonce_header(prefix: &[u8;80], nonce: u32) -> [u8;80] {
         let mut header=*prefix;
         header[76..80].copy_from_slice(&nonce.to_le_bytes());
@@ -168,6 +176,30 @@ pub fn connect_stratum(config: &StratumConfig) -> Result<TcpStream, StratumError
     let mut addrs=config.endpoint.to_socket_addrs().map_err(StratumError::Io)?;
     let addr=addrs.next().ok_or_else(|| StratumError::Protocol("endpoint resolved to no addresses".into()))?;
     Ok(TcpStream::connect_timeout(&addr, config.connect_timeout)?)
+}
+
+pub fn configure_version_rolling(stream: &mut TcpStream, id: u64, miner_mask: u32, min_bit_count: u64) -> Result<Option<u32>, StratumError> {
+    send_request(
+        stream,
+        id,
+        "mining.configure",
+        json!([["version-rolling"], {
+            "version-rolling.mask": format!("{miner_mask:08x}"),
+            "version-rolling.min-bit-count": min_bit_count
+        }]),
+    )?;
+    let mut reader = BufReader::new(stream.try_clone()?);
+    let response = next_matching_response(&mut reader, id)?;
+    let result = &response["result"];
+    if result["version-rolling"] != Value::Bool(true) {
+        return Ok(None);
+    }
+    let mask = result["version-rolling.mask"]
+        .as_str()
+        .ok_or_else(|| StratumError::Protocol("version-rolling accepted without a mask".into()))?;
+    let mask = u32::from_str_radix(mask, 16)
+        .map_err(|_| StratumError::Protocol("invalid version-rolling mask".into()))?;
+    Ok(Some(mask & miner_mask))
 }
 
 pub fn send_request(stream: &mut TcpStream, id: u64, method: &str, params: Value) -> Result<(), StratumError> {
@@ -189,7 +221,7 @@ pub fn subscribe_and_authorize(
     let result=response["result"].as_array().ok_or_else(|| StratumError::Protocol(format!("subscribe rejected: {response}")))?;
     let extranonce1=result.get(1).and_then(Value::as_str).ok_or_else(|| StratumError::Protocol("subscribe missing extranonce1".into()))?;
     let extranonce2_size=result.get(2).and_then(Value::as_u64).ok_or_else(|| StratumError::Protocol("subscribe missing extranonce2 size".into()))? as usize;
-    let session=StratumSession { extranonce1:hex::decode(extranonce1)?, extranonce2_size };
+    let session=StratumSession { extranonce1:hex::decode(extranonce1)?, extranonce2_size, version_mask: 0 };
     send_request(stream,2,"mining.authorize",json!([username,password]))?;
     let auth=next_matching_response(&mut reader,2)?;
     if auth["result"] != Value::Bool(true) { return Err(StratumError::Protocol(format!("authorization rejected: {auth}"))); }
