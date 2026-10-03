@@ -30,9 +30,7 @@ const btcApiUrl = required("BTC_ASSETS_API_URL");
 const btcApiToken = required("BTC_ASSETS_API_TOKEN");
 const btcApiOrigin = required("BTC_ASSETS_API_ORIGIN");
 const receiverAddress = required("RGBPP_RECEIVER_BTC_ADDRESS");
-const udtCodeHash = required("UDT_CODE_HASH");
-const udtCellDepTxHash = required("UDT_CELL_DEP_TX_HASH");
-const udtCellDepIndex = Number(process.env.UDT_CELL_DEP_INDEX ?? "0");
+const udtTypeArgs = required("UDT_TYPE_ARGS");
 const transferAmount = BigInt(process.env.RGBPP_TRANSFER_AMOUNT ?? "1");
 const feeRate = Number(process.env.RGBPP_FEE_RATE ?? "28");
 const broadcast = process.env.RGBPP_BROADCAST === "true";
@@ -52,9 +50,6 @@ if (!/^https:\\/\\//i.test(btcApiUrl)) {
 if (broadcast && !broadcastConfirmation) throw new Error("Broadcast blocked: set RGBPP_CONFIRM_TESTNET_BROADCAST=YES after reviewing the testnet transaction.");
 if (!Object.values(AddressType).includes(btcAddressType)) {
   throw new Error(`Unsupported BTC address type: ${btcAddressType}`);
-}
-if (!Number.isInteger(udtCellDepIndex) || udtCellDepIndex < 0) {
-  throw new Error("UDT_CELL_DEP_INDEX must be a non-negative integer");
 }
 if (transferAmount <= 0n) throw new Error("RGBPP_TRANSFER_AMOUNT must be > 0");
 if (!Number.isFinite(feeRate) || feeRate <= 0) {
@@ -86,16 +81,15 @@ const ckbRgbppUnlockSigner = new CkbRgbppUnlockSigner({
   scriptInfos: await rgbppUdtClient.getRgbppScriptInfos(),
 });
 
+const xuDtScriptInfo = await ckbClient.getKnownScript(ccc.KnownScript.XUdt);
+const udtScript = await ccc.Script.fromKnownScript(
+  ckbClient,
+  ccc.KnownScript.XUdt,
+  udtTypeArgs,
+);
 const udt = new ccc.udt.Udt(
-  {
-    txHash: udtCellDepTxHash,
-    index: udtCellDepIndex,
-  },
-  await ccc.Script.from({
-    codeHash: udtCodeHash,
-    hashType: process.env.UDT_HASH_TYPE ?? "type",
-    args: required("UDT_TYPE_ARGS"),
-  }),
+  xuDtScriptInfo.cellDeps[0].cellDep,
+  udtScript,
 );
 
 const pseudoLock = await rgbppUdtClient.buildPseudoRgbppLockScript();
