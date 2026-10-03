@@ -83,14 +83,14 @@ The Rust crate also contains a standalone Stratum V1 miner for a machine or mini
 For a solo pool such as ckpool, the payout Bitcoin address is supplied as the Stratum username. citeturn0search0turn0search2
 
 ```bash
-export STRATUM_URL=solo.ckpool.org:3333
+export STRATUM_URLS=solo.ckpool.org:3333
 export STRATUM_USERNAME=bc1qrwhe5l4wvx86g6rs4n3tpyr85j0xr3cs6lex4d
 export STRATUM_PASSWORD=x
 export MINER_THREADS=$(nproc)
 cargo run -p bitcoin-pow --bin stratum-miner --release
 ```
 
-This is intentionally not a GitHub-hosted continuous mining workflow. See `docs/bitcoin-stratum-mining.md` for the real-machine runbook.
+This is intentionally not a GitHub-hosted continuous mining workflow. Multiple explicitly authorized machines can use the same payout username to aggregate idle SHA256 capacity; see `docs/bitcoin-stratum-mining.md` for the real-machine runbook. No third-party or unconsented compute is used.
 
 ## Run locally
 
