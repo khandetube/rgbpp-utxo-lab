@@ -21,6 +21,7 @@ pub struct Selection {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SelectionError {
+    InvalidTarget,
     InsufficientFunds { available: u64, required: u64 },
 }
 
@@ -32,7 +33,7 @@ pub fn select_largest_first(mut utxos: Vec<Utxo>, target: u64) -> Result<Selecti
         selected.push(u);
         total = match total.checked_add(selected.last().unwrap().value) {
             Some(value) => value,
-            None => return Err(SelectionError::InsufficientFunds { available: u64::MAX, required: target }),
+            None => return Err(SelectionError::InvalidTarget),
         };
         if total >= target {
             return Ok(Selection { inputs: selected, total, change: total - target });
