@@ -51,7 +51,7 @@ jobs:
           export BITCOIN_MINER_SCRIPT_PUBKEY="$script"
           cargo run -p bitcoin-pow --bin testnet3_miner --release
 
-      - name: Mature the miner reward and verify wallet balance and verify wallet balance
+      - name: Mature the miner reward and verify wallet balance
         shell: bash
         run: |
           set -euo pipefail
