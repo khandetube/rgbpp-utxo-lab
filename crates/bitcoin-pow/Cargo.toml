@@ -7,3 +7,4 @@ description = "Bitcoin-style double-SHA256 proof-of-work engine for reproducible
 [dependencies]
 bitcoin = "0.32.102"
 sha2 = "0.10"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
