@@ -35,7 +35,7 @@ impl BlockTemplate {
         let target = Target::from_compact(bits);
         let curtime = value["curtime"].as_u64().ok_or("missing curtime")? as u32;
         let mintime = value["mintime"].as_u64().ok_or("missing mintime")? as u32;
-        let coinbase_value = value["coinbasevalue"].as_u64().ok_or("missing coinbasevalue")?;
+        let coinbase_value = value["coinbasevalue"].as_u64().unwrap_or(0);
 
         let transactions = value["transactions"].as_array().ok_or("missing transactions")?
             .iter().map(|tx| {
