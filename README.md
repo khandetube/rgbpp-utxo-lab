@@ -63,7 +63,7 @@ Secrets must contain only operator-controlled **Bitcoin Testnet3 / CKB Testnet**
 
 ## Funding & ecosystem development
 
-The project is also being prepared for transparent ecosystem funding and technical partnerships. A concise, evidence-based funding brief is available at [docs/investor-ecosystem-brief.md](docs/investor-ecosystem-brief.md). Current 2026 funding routes and evidence requirements are tracked in [docs/funding-targets-2026.md](docs/funding-targets-2026.md).
+The project is also being prepared for transparent ecosystem funding and technical partnerships. The evidence-based funding brief is available at [docs/investor-ecosystem-brief.md](docs/investor-ecosystem-brief.md), with the current 2026 funding routes in [docs/funding-targets-2026.md](docs/funding-targets-2026.md) and the submission-ready package in [docs/funding-submission-package.md](docs/funding-submission-package.md).
 
 The funding plan is milestone-based: real testnet verification, reproducible evidence, developer tooling and security hardening. No adoption, revenue, investor commitment or production deployment is claimed before it is independently demonstrated.
 
