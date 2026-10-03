@@ -40,7 +40,7 @@ pub fn build_and_optionally_send(config: TransferConfig) -> Result<H256> {
         let hash160 = blake2b_256(&pubkey.serialize())[..20].to_vec();
         Script::new_builder()
             .code_hash(SIGHASH_TYPE_HASH.pack())
-            .hash_type(ScriptHashType::Type.into())
+            .hash_type(ScriptHashType::Type)
             .args(Bytes::from(hash160).pack())
             .build()
     };
