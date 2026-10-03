@@ -49,6 +49,11 @@ fn main() {
         .build()
         .expect("client");
 
+    let chain = rpc(&client, &rpc_url, &user, &password, "getblockchaininfo", json!([]));
+    if chain["chain"].as_str() != Some("main") {
+        panic!("refusing Mainnet miner: connected node is not on Bitcoin Mainnet");
+    }
+
     let template_json = rpc(
         &client,
         &rpc_url,
