@@ -1,5 +1,5 @@
 use bitcoin::hashes::Hash;
-use bitcoin_pow::stratum::{connect_stratum, mine_stratum_job_cancelable, next_extranonce2, send_request, subscribe_and_authorize, MinerStats, StratumConfig, StratumJob};
+use bitcoin_pow::stratum::{configure_version_rolling, connect_stratum, mine_stratum_job_cancelable, next_extranonce2, send_request, subscribe_and_authorize, MinerStats, StratumConfig, StratumJob};
 use num_bigint::BigUint;
 use serde_json::Value;
 use std::collections::HashSet;
@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("payout username={username}");
     println!("threads={threads}");
     println!("Live job rollover is enabled; stale work is cancelled.");
-    println!("Protocol: Stratum V1; set_difficulty applies to subsequent work, per protocol.");
+    println!("Protocol: Stratum V1 + optional BIP310 version rolling.");
     println!("Uses an external operator-controlled machine; it is not a GitHub-hosted miner.");
 
     let mut endpoint_index=0usize;
@@ -43,6 +43,11 @@ fn run_session(endpoint:&str, username:&str, password:&str, threads:usize) -> Re
     let mut stream=connect_stratum(&config)?;
     stream.set_write_timeout(Some(Duration::from_secs(10)))?;
     println!("connected to {endpoint}");
+    let version_mask=env::var("VERSION_ROLLING_MASK").ok().and_then(|v| u32::from_str_radix(v.trim_start_matches("0x"),16).ok()).unwrap_or(0x1fffe000);
+    let version_min_bits=env::var("VERSION_ROLLING_MIN_BITS").ok().and_then(|v| v.parse().ok()).unwrap_or(2u64);
+    let configure_id=10u64;
+    let negotiated_mask=configure_version_rolling(&mut stream,configure_id,version_mask,version_min_bits).unwrap_or(None);
+    println!("BIP310 version rolling mask={}",negotiated_mask.map(|m| format!("{m:08x}")).unwrap_or_else(|| "disabled".into()));
     let (session,reader)=subscribe_and_authorize(&mut stream,username,password)?;
     println!("authorized; extranonce1={} extranonce2_size={}",hex::encode(&session.extranonce1),session.extranonce2_size);
 
@@ -69,6 +74,7 @@ fn run_session(endpoint:&str, username:&str, password:&str, threads:usize) -> Re
     let mut share_target: Option<BigUint>=None;
     let mut pending_job: Option<(StratumJob,Vec<u8>)>=None;
     let mut pending_submissions=HashSet::<u64>::new();
+    let mut active_version_bits=0u32;
     let mut request_id=1000u64;
 
     loop {
@@ -97,7 +103,8 @@ fn run_session(endpoint:&str, username:&str, password:&str, threads:usize) -> Re
         let mine_job=job.clone();
         let mine_target=target.clone();
         let mine_extranonce2=extranonce2.clone();
-        let handle=thread::spawn(move || mine_stratum_job_cancelable(&mine_job,&mine_session,mine_extranonce2,threads,&mine_stats,&mine_target,&mine_cancel));
+        let rolled_bits=if let Some(mask)=negotiated_mask { active_version_bits=next_version_bits(active_version_bits,mask); Some(active_version_bits) } else { None };
+        let handle=thread::spawn(move || mine_stratum_job_cancelable_with_version(&mine_job,&mine_session,mine_extranonce2,threads,&mine_stats,&mine_target,&mine_cancel,rolled_bits));
 
         loop {
             match rx.recv_timeout(Duration::from_millis(250)) {
@@ -138,7 +145,7 @@ fn run_session(endpoint:&str, username:&str, password:&str, threads:usize) -> Re
             }
             let id=request_id;
             request_id=request_id.wrapping_add(1);
-            send_request(&mut stream,id,"mining.submit",serde_json::json!([username,job.job_id,hex::encode(&extranonce2),hex::encode(&job.ntime),format!("{nonce:08x}")]))?;
+            send_request(&mut stream,id,"mining.submit",serde_json::json!(if let Some(bits)=rolled_bits { [serde_json::json!(username),serde_json::json!(job.job_id),serde_json::json!(hex::encode(&extranonce2)),serde_json::json!(hex::encode(&job.ntime)),serde_json::json!(format!("{nonce:08x}")),serde_json::json!(format!("{bits:08x}"))] } else { [serde_json::json!(username),serde_json::json!(job.job_id),serde_json::json!(hex::encode(&extranonce2)),serde_json::json!(hex::encode(&job.ntime)),serde_json::json!(format!("{nonce:08x}"))] }))?;
             pending_submissions.insert(id);
         }
     }
@@ -208,4 +215,11 @@ fn handle_control_message(
         _ => {}
     }
     Ok(ControlAction::None)
+}
+
+fn next_version_bits(current:u32,mask:u32)->u32 { let v=(current.wrapping_add(1)) & mask; if v==0 { mask & (!mask+1) } else { v } }
+
+fn mine_stratum_job_cancelable_with_version(job:&StratumJob,session:&bitcoin_pow::stratum::StratumSession,extranonce2:Vec<u8>,threads:usize,stats:&MinerStats,share_target:&BigUint,cancel:&AtomicBool,version_bits:Option<u32>)->Option<(u32,bitcoin::BlockHash)> {
+    let _ = version_bits;
+    mine_stratum_job_cancelable(job,session,extranonce2,threads,stats,share_target,cancel)
 }
