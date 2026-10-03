@@ -21,7 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("endpoints={}",endpoints.join(","));
     println!("payout username={username}");
     println!("threads={threads}");
-    println!("Live job rollover is enabled; this miner cancels stale clean jobs instead of waiting for the nonce space to finish.");
+    println!("Live job rollover is enabled; stale work is cancelled.");
     println!("Uses an external operator-controlled machine; it is not a GitHub-hosted miner.");
 
     let mut endpoint_index=0usize;
@@ -75,21 +75,12 @@ fn run_session(endpoint:&str, username:&str, password:&str, threads:usize) -> Re
             item
         } else {
             loop {
-                let msg=rx.recv().map_err(|_| "reader channel closed")??;
+                let msg=rx.recv().map_err(|_| "reader channel closed")?;
+                let msg=msg.map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
                 if let Some(job_item)=handle_control_message(&msg,&mut stream,&session,&mut share_target,&mut counter,&mut request_id,&mut pending_submissions)? {
                     break job_item;
                 }
-                if let Some(id)=msg["id"].as_u64() {
-                    if pending_submissions.remove(&id) {
-                        if msg["result"]==Value::Bool(true) {
-                            stats.accepted.fetch_add(1,Ordering::Relaxed);
-                            println!("SUBMISSION ACCEPTED id={id}");
-                        } else {
-                            stats.rejected.fetch_add(1,Ordering::Relaxed);
-                            println!("SUBMISSION REJECTED id={id}: {msg}");
-                        }
-                    }
-                }
+                account_submission(&msg,&pending_submissions,&stats);
             }
         };
 
@@ -115,23 +106,16 @@ fn run_session(endpoint:&str, username:&str, password:&str, threads:usize) -> Re
                         pending_job=Some((new_job,new_extranonce2));
                         break;
                     }
-                    if let Some(id)=msg["id"].as_u64() {
-                        if pending_submissions.remove(&id) {
-                            if msg["result"]==Value::Bool(true) {
-                                stats.accepted.fetch_add(1,Ordering::Relaxed);
-                                println!("SUBMISSION ACCEPTED id={id}");
-                            } else {
-                                stats.rejected.fetch_add(1,Ordering::Relaxed);
-                                println!("SUBMISSION REJECTED id={id}: {msg}");
-                            }
-                        }
-                    }
+                    account_submission(&msg,&pending_submissions,&stats);
+                    if handle.is_finished() { break; }
                 }
-                Err(mpsc::RecvTimeoutError::Timeout) => {}
+                Err(mpsc::RecvTimeoutError::Timeout) => {
+                    if handle.is_finished() { break; }
+                }
                 Err(mpsc::RecvTimeoutError::Disconnected) => return Err("reader channel disconnected".into()),
             }
-            if handle.is_finished() { break; }
         }
+        if !handle.is_finished() { cancel.store(true,Ordering::Release); }
         let solved=handle.join().map_err(|_| "mining worker panicked")?;
         let elapsed=started.elapsed().as_secs_f64().max(0.001);
         let hashes=stats.hashes.load(Ordering::Relaxed);
@@ -152,6 +136,20 @@ fn run_session(endpoint:&str, username:&str, password:&str, threads:usize) -> Re
     }
 }
 
+fn account_submission(msg:&Value,pending:&HashSet<u64>,stats:&MinerStats) {
+    if let Some(id)=msg["id"].as_u64() {
+        if pending.contains(&id) {
+            if msg["result"]==Value::Bool(true) {
+                stats.accepted.fetch_add(1,Ordering::Relaxed);
+                println!("SUBMISSION ACCEPTED id={id}");
+            } else {
+                stats.rejected.fetch_add(1,Ordering::Relaxed);
+                println!("SUBMISSION REJECTED id={id}: {msg}");
+            }
+        }
+    }
+}
+
 fn handle_control_message(
     msg:&Value,
     stream:&mut std::net::TcpStream,
@@ -165,7 +163,7 @@ fn handle_control_message(
         Some("mining.set_difficulty") => {
             let difficulty=msg["params"].get(0).ok_or("set_difficulty missing value")?;
             *share_target=Some(StratumJob::share_target_from_difficulty(difficulty)?);
-            println!("pool share difficulty changed: {difficulty}; new jobs will use the new target");
+            println!("pool share difficulty changed: {difficulty}; current work will be discarded");
         }
         Some("mining.set_extranonce") => {
             let params=msg["params"].as_array().ok_or("set_extranonce params missing")?;
@@ -175,7 +173,7 @@ fn handle_control_message(
             guard.extranonce1=hex::decode(extranonce1)?;
             guard.extranonce2_size=size;
             *counter=0;
-            println!("pool changed extranonce1={} extranonce2_size={size}; current work will be discarded",hex::encode(&guard.extranonce1));
+            println!("pool changed extranonce1={} extranonce2_size={size}; active work will be discarded",hex::encode(&guard.extranonce1));
         }
         Some("mining.ping") => {
             let id=msg["id"].as_u64().ok_or("mining.ping id missing")?;
@@ -192,13 +190,7 @@ fn handle_control_message(
             println!("new {} job={} clean={}",if job.clean_jobs {"clean"} else {"non-clean"},job.job_id,job.clean_jobs);
             return Ok(Some((job,extranonce2)));
         }
-        _ => {
-            if let Some(id)=msg["id"].as_u64() {
-                if pending_submissions.contains(&id) {
-                    // Submission responses are accounted for by the caller.
-                }
-            }
-        }
+        _ => {}
     }
     Ok(None)
 }
