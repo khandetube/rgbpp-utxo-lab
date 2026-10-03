@@ -52,8 +52,33 @@ const btcApiToken = required("BTC_ASSETS_API_TOKEN");
 const btcApiOrigin = required("BTC_ASSETS_API_ORIGIN");
 const receiverAddress = required("RGBPP_RECEIVER_BTC_ADDRESS");
 const udtTypeArgs = required("UDT_TYPE_ARGS");
-const transferAmount = BigInt(process.env.RGBPP_TRANSFER_AMOUNT ?? "1");
-const feeRate = Number(process.env.RGBPP_FEE_RATE ?? "28");
+
+function positiveBigIntEnv(name: string, fallback: string): bigint {
+  const raw = (process.env[name] ?? fallback).trim();
+  if (!/^\d+$/.test(raw)) {
+    throw new Error(name + " must be a positive integer");
+  }
+  const value = BigInt(raw);
+  if (value <= 0n) {
+    throw new Error(name + " must be a positive integer");
+  }
+  return value;
+}
+
+function positiveIntegerEnv(name: string, fallback: string): number {
+  const raw = (process.env[name] ?? fallback).trim();
+  if (!/^\d+$/.test(raw)) {
+    throw new Error(name + " must be a positive integer");
+  }
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error(name + " must be a positive safe integer");
+  }
+  return value;
+}
+
+const transferAmount = positiveBigIntEnv("RGBPP_TRANSFER_AMOUNT", "1");
+const feeRate = positiveIntegerEnv("RGBPP_FEE_RATE", "28");
 const broadcastValue = (process.env.RGBPP_BROADCAST ?? "false").trim().toLowerCase();
 if (broadcastValue !== "true" && broadcastValue !== "false") {
   throw new Error("RGBPP_BROADCAST must be exactly true or false");
@@ -82,14 +107,8 @@ if (!/^0x[0-9a-f]{64}$/i.test(udtTypeArgs)) {
 if (!Object.values(AddressType).includes(btcAddressType)) {
   throw new Error(`Unsupported BTC address type: ${btcAddressType}`);
 }
-if (!/^\d+$/.test(process.env.RGBPP_TRANSFER_AMOUNT ?? "1") || transferAmount <= 0n) {
-  throw new Error("RGBPP_TRANSFER_AMOUNT must be a positive integer");
-}
-if (!/^\\d+$/.test(process.env.RGBPP_TRANSFER_AMOUNT ?? "1")) {
-  throw new Error("RGBPP_TRANSFER_AMOUNT must be a positive integer");
-}
-if (!Number.isInteger(feeRate) || feeRate <= 0) {
-  throw new Error("RGBPP_FEE_RATE must be > 0");
+if (receiverAddress === "") {
+  throw new Error("RGBPP_RECEIVER_BTC_ADDRESS must not be empty");
 }
 
 const networkConfig = buildNetworkConfig(networkName);
