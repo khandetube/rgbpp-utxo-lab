@@ -114,10 +114,15 @@ impl StratumJob {
         let coinbase_hash = double_sha256(&self.coinbase(session,&extranonce2));
         let root = self.merkle_root(coinbase_hash);
         let mut header=[0u8;80];
-        for (dst,src) in [(0,&self.version),(4,&self.prevhash),(36,&root),(68,&self.ntime),(72,&self.nbits)] {
-            for i in 0..4.min(src.len()) { header[dst+i]=src[src.len()-1-i]; }
+        for i in 0..4 {
+            header[i]=self.version[3-i];
+            header[68+i]=self.ntime[3-i];
+            header[72+i]=self.nbits[3-i];
         }
-        for i in 0..32 { header[4+i]=self.prevhash[31-i]; header[36+i]=root[31-i]; }
+        for i in 0..32 {
+            header[4+i]=self.prevhash[31-i];
+            header[36+i]=root[31-i];
+        }
         Ok(header)
     }
 
