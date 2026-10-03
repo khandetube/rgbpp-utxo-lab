@@ -45,9 +45,7 @@ pub fn get_live_cell(
     with_data: bool,
 ) -> Result<Value, RpcAdapterError> {
     if !is_valid_h256(tx_hash) {
-        return Err(RpcAdapterError::InvalidTransactionHash(
-            tx_hash.to_owned(),
-        ));
+        return Err(RpcAdapterError::InvalidTransactionHash(tx_hash.to_owned()));
     }
 
     let client = CkbRpcClient::new(rpc_url);
@@ -91,6 +89,5 @@ mod tests {
         assert_eq!(normalize_hex("abcd"), "abcd");
     }
 }
-
 
 pub mod transfer;
