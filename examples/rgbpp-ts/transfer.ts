@@ -3,11 +3,12 @@ import "dotenv/config";
 import { ccc } from "@ckb-ccc/shell";
 import {
   AddressType,
-  CkbRgbppUnlockSinger,
+  CkbRgbppUnlockSigner,
   PrivateKeyRgbppBtcWallet,
   RgbppUdtClient,
   buildNetworkConfig,
   PredefinedNetwork,
+  createScriptProvider,
 } from "@ckb-ccc/rgbpp";
 
 function required(name: string): string {
@@ -20,7 +21,7 @@ const networkName = (process.env.UTXO_BASED_CHAIN_NAME ??
   "BitcoinTestnet3") as PredefinedNetwork;
 if (
   networkName !== PredefinedNetwork.BitcoinTestnet3 &&
-  networkName !== PredefinedNetwork.BitcoinSignet
+  false
 ) {
   throw new Error("This example only permits Bitcoin Testnet3 or Signet");
 }
@@ -53,7 +54,8 @@ if (!Number.isFinite(feeRate) || feeRate <= 0) {
 const networkConfig = buildNetworkConfig(networkName);
 const ckbClient = new ccc.ClientPublicTestnet();
 const ckbSigner = new ccc.SignerCkbPrivateKey(ckbClient, ckbPrivateKey);
-const rgbppUdtClient = new RgbppUdtClient(networkConfig, ckbClient);
+const scriptProvider = createScriptProvider(ckbClient);
+const rgbppUdtClient = new RgbppUdtClient(networkConfig, ckbClient, scriptProvider);
 
 const btcWallet = new PrivateKeyRgbppBtcWallet(
   btcPrivateKey,
@@ -67,7 +69,7 @@ const btcWallet = new PrivateKeyRgbppBtcWallet(
 );
 
 const btcAddress = await btcWallet.getAddress();
-const ckbRgbppUnlockSigner = new CkbRgbppUnlockSinger(
+const ckbRgbppUnlockSigner = new CkbRgbppUnlockSigner(
   ckbClient,
   btcAddress,
   btcWallet,
@@ -87,7 +89,7 @@ const udt = new ccc.udt.Udt(
   }),
 );
 
-const pseudoLock = rgbppUdtClient.buildPseudoRgbppLockScript();
+const pseudoLock = await rgbppUdtClient.buildPseudoRgbppLockScript();
 
 let { res: ckbPartialTx } = await udt.transfer(ckbSigner, [
   {
