@@ -56,6 +56,7 @@ mod tests {
     use super::*;
     use bitcoin::block::Version;
     use bitcoin::hashes::sha256d;
+    use bitcoin::hashes::Hash;
     use bitcoin::{BlockHash, TxMerkleNode};
 
     #[test]
