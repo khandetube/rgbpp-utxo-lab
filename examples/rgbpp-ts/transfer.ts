@@ -19,11 +19,8 @@ function required(name: string): string {
 
 const networkName = (process.env.UTXO_BASED_CHAIN_NAME ??
   "BitcoinTestnet3") as PredefinedNetwork;
-if (
-  networkName !== PredefinedNetwork.BitcoinTestnet3 &&
-  false
-) {
-  throw new Error("This example only permits Bitcoin Testnet3 or Signet");
+if (networkName !== PredefinedNetwork.BitcoinTestnet3) {
+  throw new Error("Unsafe network: RGB++ example requires Bitcoin Testnet3");
 }
 
 const ckbPrivateKey = required("CKB_SECP256K1_PRIVATE_KEY");
