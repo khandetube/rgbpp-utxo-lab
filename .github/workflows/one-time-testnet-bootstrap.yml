@@ -1,0 +1,79 @@
+name: One-time Testnet Bootstrap
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/one-time-testnet-bootstrap.yml"
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: examples/rgbpp-ts
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: pnpm install --no-frozen-lockfile
+
+      - name: Generate ephemeral Testnet3 wallet
+        run: |
+          cat > /tmp/bootstrap.mjs <<'EOF'
+          import { randomBytes } from "node:crypto";
+          import { ccc } from "@ckb-ccc/shell";
+          import { AddressType, PrivateKeyRgbppBtcWallet, buildNetworkConfig, PredefinedNetwork } from "@ckb-ccc/rgbpp";
+
+          const ckbKey = "0x" + randomBytes(32).toString("hex");
+          const btcKey = randomBytes(32).toString("hex");
+          const ckbClient = new ccc.ClientPublicTestnet();
+          const ckbSigner = new ccc.SignerCkbPrivateKey(ckbClient, ckbKey);
+          const ckbAddress = await ckbSigner.getRecommendedAddress();
+
+          const network = buildNetworkConfig(PredefinedNetwork.BitcoinTestnet3);
+          const btcWallet = new PrivateKeyRgbppBtcWallet(
+            btcKey,
+            AddressType.P2WPKH,
+            network,
+            { url: "https://api-testnet.rgbpp.com", token: "bootstrap", origin: "https://khandetube.github.io" },
+          );
+          const btcAddress = await btcWallet.getAddress();
+
+          process.stdout.write(JSON.stringify({ ckbKey, btcKey, ckbAddress, btcAddress }));
+          EOF
+
+          node /tmp/bootstrap.mjs > /tmp/wallet.json
+          node -e 'const w=require("/tmp/wallet.json"); console.log("ckb_address="+w.ckbAddress); console.log("btc_address="+w.btcAddress);'
+
+      - name: Claim CKB from public Pudge faucet
+        run: |
+          CKB_ADDRESS=$(node -e 'console.log(require("/tmp/wallet.json").ckbAddress)')
+          RESPONSE=$(curl --fail-with-body --silent --show-error --max-time 30             -X POST "https://faucet.nervos.org/api/v1/claim"             -H "content-type: application/json"             --data "{\"address\":\"$CKB_ADDRESS\"}" || true)
+          echo "ckb_faucet_response=$RESPONSE"
+
+      - name: Verify CKB testnet connectivity
+        run: |
+          CKB_ADDRESS=$(node -e 'console.log(require("/tmp/wallet.json").ckbAddress)')
+          node --input-type=module <<'EOF'
+          import { ccc } from "@ckb-ccc/shell";
+          const address = process.env.CKB_ADDRESS;
+          const client = new ccc.ClientPublicTestnet();
+          const tip = await client.getTipBlockNumber();
+          console.log("ckb_testnet_tip=" + tip);
+          console.log("ckb_address=" + address);
+          EOF
+        env:
+          CKB_ADDRESS: ${{ steps.wallet.outputs.ckb_address }}
+
+      - name: Remove ephemeral wallet material
+        if: always()
+        run: rm -f /tmp/wallet.json /tmp/bootstrap.mjs
