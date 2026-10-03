@@ -5,7 +5,8 @@
   "scripts": {
     "transfer": "tsx transfer.ts",
     "typecheck": "tsc --noEmit",
-    "preflight": "tsx preflight.ts"
+    "preflight": "tsx preflight.ts",
+    "public-preflight": "tsx public-preflight.ts"
   },
   "dependencies": {
     "@ckb-ccc/rgbpp": "0.0.0-canary-20260204233059",
