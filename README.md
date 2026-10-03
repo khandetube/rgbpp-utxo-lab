@@ -1,77 +1,62 @@
 # RGB++ UTXO Lab
 
-A runnable, test-driven blockchain engineering laboratory focused on Bitcoin-style UTXOs, CKB Cells, transaction construction, and RGB++ workflow modeling.
+> Production-oriented Rust + TypeScript laboratory for Bitcoin UTXO, CKB cells, xUDT and RGB++ transaction workflows.
 
-> Portfolio project — independent implementation.
-> This repository is not an official Nervos/RGB++ implementation and does not claim client production experience.
+[![Rust CI](https://github.com/khandetube/rgbpp-utxo-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/khandetube/rgbpp-utxo-lab/actions/workflows/ci.yml)
+[![RGB++ TypeScript CI](https://github.com/khandetube/rgbpp-utxo-lab/actions/workflows/rgbpp-ts.yml/badge.svg)](https://github.com/khandetube/rgbpp-utxo-lab/actions/workflows/rgbpp-ts.yml)
 
-## What this project demonstrates
+## Why this project
 
-- Rust workspace architecture
-- Deterministic Bitcoin-style UTXO selection and change calculation
-- CKB Cell modeling based on the documented Cell model
-- Transaction validation invariants with unit tests
-- Explicit separation between protocol-independent domain logic and network adapters
-- A path for later integration with real CKB RPC/testnet tooling
+A transparent, reproducible engineering reference for developers building Bitcoin/UTXO and CKB/RGB++ infrastructure in Rust and TypeScript.
 
-## Why these primitives
+**Current verification:** deterministic Rust tests and TypeScript type-checking run in GitHub Actions. Live testnet verification is deliberately separated from push CI and must use legitimate operator-controlled testnet funds and credentials.
 
-CKB uses a Cell model in which state is represented by transaction outputs, with lock and type scripts governing authorization and state validity. Its official ecosystem provides Rust SDKs, RPC tooling, testnet infrastructure, and development examples.
+## Core capabilities
 
-This project deliberately starts with a fully local, deterministic core so that every example can run without private keys, funded wallets, or a live node.
+- deterministic Bitcoin-style UTXO selection and parsing
+- deterministic CKB cell selection and capacity accounting
+- Rust CKB RPC/indexer integration
+- real CKB Testnet/Pudge transfer builder with guarded broadcast
+- RGB++ xUDT transfer pipeline on Bitcoin Testnet3
+- fail-closed network, secret and broadcast validation
+- public and private testnet preflight paths
+- reproducible CI and live-testnet runbook
 
-## Project status
+## RGB++ transfer path
 
-### Implemented in this first milestone
+`xUDT -> CKB partial transaction -> Bitcoin PSBT -> Bitcoin broadcast -> inject real BTC TXID -> RGB++ witness -> final CKB transaction`
 
-- UTXO domain types
-- deterministic UTXO selection
-- fee/change accounting
-- CKB Cell domain types
-- capacity conservation checks
-- transaction-level validation
-- executable examples
-- automated tests
+The implementation follows the RGB++ SDK model; protocol-specific behavior is kept behind integration boundaries.
 
-### Current integration milestones
+## Live testnet verification
 
-1. CKB JSON-RPC adapter
-2. real testnet cell collection
-3. official CKB SDK signed transaction construction with guarded broadcast
-4. RGB++ TypeScript integration using the CCC-based RGB++ SDK
-5. testnet preflight validation and guarded Bitcoin Testnet3 / CKB testnet execution path
+See [docs/live-testnet-verification.md](docs/live-testnet-verification.md).
 
-No protocol-specific API is fabricated in this repository.
+The project never fabricates transaction IDs, balances, assets, credentials or successful broadcasts. A real end-to-end claim is made only after a real Testnet3 transaction is independently verifiable.
 
-## Verification
+## Project structure
 
-Run: cargo test --workspace
-Run: cargo run -p tx-builder --example transfer
+- `crates/utxo-model` — Bitcoin-style UTXO domain model
+- `crates/ckb-cell-model` — CKB cell and capacity model
+- `crates/tx-builder` — deterministic transfer builders
+- `crates/ckb-rpc` — CKB RPC/indexer and guarded transfer integration
+- `examples/rgbpp-ts` — RGB++ TypeScript integration and preflight tooling
+- `docs/` — architecture, security, protocol and live-testnet documentation
 
-The core examples are deterministic and do not require network access.
+## Run locally
 
-## References
+```bash
+cargo test --workspace
+cargo check --workspace
 
-- CKB official documentation: https://docs.nervos.org/
-- CKB source: https://github.com/nervosnetwork/ckb
-- CKB RFC 0002: https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0002-ckb/0002-ckb.md
-- CKB developer resources: https://github.com/ckb-devrel/CKB-Developer-Resource
+cd examples/rgbpp-ts
+pnpm install
+pnpm run typecheck
+pnpm run preflight
+```
 
-## Engineering principles
+For real testnet execution, use only Bitcoin Testnet3 and CKB Testnet/Pudge assets controlled by the operator. Never commit private keys.
 
-- No fabricated protocol claims
-- No fake transaction IDs
-- No fake client work
-- Reproducible local tests
-- Small, reviewable modules
-- Explicit security boundaries
-## Operational milestones
+## Portfolio note
 
-- Rust UTXO and deterministic selection
-- CKB Cell modeling and capacity invariants
-- CKB RPC/indexer integration
-- Official CKB SDK transaction construction and guarded testnet broadcast path
-- rust-bitcoin outpoint primitives
-- CCC-based RGB++ SDK TypeScript integration for real xUDT transfer construction, PSBT generation, guarded BTC broadcast, and RGB++ queue submission
-
-The final end-to-end RGB++ execution requires user-supplied, funded testnet BTC/CKB accounts, an actual RGB++ xUDT asset, live RGB++ lock args/UTXOs, and a valid service token. Those are external chain state and secrets, so the repository never invents or stores them.
+This repository is an independent engineering project and does not claim to be an official Nervos/RGB++ implementation or prior client production work.
