@@ -30,22 +30,48 @@ Required environment variables are documented in `.env.example`.
 
 **Never commit private keys or API tokens.** For CI, use GitHub Actions Secrets.
 
-## 3. Real RGB++ transfer
+## 3. Guarded GitHub Actions transfer
 
-The transfer example is intentionally build-only by default. It requires:
+The repository now includes **RGB++ Testnet Transfer** as a manual `workflow_dispatch` workflow.
 
-- a user-controlled Bitcoin Testnet3 private key/address
-- a user-controlled CKB testnet private key
+It performs this sequence:
+
+1. install the pinned TypeScript dependencies
+2. run TypeScript typecheck
+3. run private preflight
+4. run the transfer example
+
+The workflow requires these Actions Secrets:
+
+- `UTXO_BASED_CHAIN_PRIVATE_KEY`
+- `UTXO_BASED_CHAIN_ADDRESS_TYPE`
+- `CKB_SECP256K1_PRIVATE_KEY`
+- `BTC_ASSETS_API_TOKEN`
+- `BTC_ASSETS_API_ORIGIN`
+- `UDT_TYPE_ARGS`
+- `RGBPP_RECEIVER_BTC_ADDRESS`
+
+Optional repository Variables:
+
+- `RGBPP_TRANSFER_AMOUNT`
+- `RGBPP_FEE_RATE`
+
+The workflow defaults to **no broadcast**. Bitcoin broadcast is enabled only when the manual `broadcast` input is true **and** the separate `confirm_broadcast` input is exactly `YES`. The application itself has the same fail-closed guard.
+
+## 4. Real RGB++ transfer prerequisites
+
+A truthful end-to-end transfer requires:
+
+- a user-controlled Bitcoin Testnet3 private key/address with sufficient testnet BTC
+- a user-controlled CKB testnet private key with sufficient CKB capacity
 - a real RGB++ xUDT unique ID/type args
 - the RGB++ testnet API token/origin required by the service
-- a funded testnet receiver
+- a funded and independently verified testnet receiver
 - independently verified amount and fee settings
 
-Set `RGBPP_BROADCAST=true` only after independently checking all recipient, asset, amount, fee, and network values. Also set `RGBPP_CONFIRM_TESTNET_BROADCAST=YES`.
+The implementation rejects non-Testnet3 networks and blocks broadcast unless the explicit confirmation guard is present.
 
-The code rejects non-Testnet3 networks and blocks broadcast unless the explicit confirmation guard is present.
-
-## 4. What counts as a real end-to-end verification
+## 5. What counts as a real end-to-end verification
 
 A real verification should record the actual:
 
@@ -55,10 +81,12 @@ A real verification should record the actual:
 4. sender and receiver testnet addresses
 5. network and fee settings
 
-No transaction ID or asset ID should ever be invented for documentation.
+No transaction ID, asset ID, balance, or successful broadcast should ever be invented for documentation.
 
-## 5. Current external prerequisites
+## 6. Current external prerequisites
 
 The repository can verify public infrastructure without secrets, but a complete live transfer cannot be truthfully executed until the external prerequisites above exist. Those values are chain state and credentials, not source-code placeholders.
 
 The implementation follows the documented RGB++ sequence: construct the partial CKB transaction, build/sign the Bitcoin transaction, submit Bitcoin, inject the Bitcoin transaction ID into the RGB++ CKB transaction, then sign and submit the final CKB transaction.
+
+This matches the current RGB++ documentation for xUDT transfer on Bitcoin Testnet3.
