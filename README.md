@@ -76,6 +76,22 @@ The funding plan is milestone-based: real testnet verification, reproducible evi
 - `examples/rgbpp-ts` — RGB++ TypeScript integration and preflight tooling
 - `docs/` — architecture, security, protocol and live-testnet documentation
 
+## Real Bitcoin Stratum miner
+
+The Rust crate also contains a standalone Stratum V1 miner for a machine or mining controller you are authorized to operate. It connects with `mining.subscribe` / `mining.authorize`, consumes `mining.notify` jobs, builds Bitcoin block headers and performs SHA256d proof-of-work, then submits a solved nonce with `mining.submit`. Stratum V1 defines this job/submit flow. citeturn1search0turn1search2
+
+For a solo pool such as ckpool, the payout Bitcoin address is supplied as the Stratum username. citeturn0search0turn0search2
+
+```bash
+export STRATUM_URL=solo.ckpool.org:3333
+export STRATUM_USERNAME=bc1qrwhe5l4wvx86g6rs4n3tpyr85j0xr3cs6lex4d
+export STRATUM_PASSWORD=x
+export MINER_THREADS=$(nproc)
+cargo run -p bitcoin-pow --bin stratum-miner --release
+```
+
+This is intentionally not a GitHub-hosted continuous mining workflow. See `docs/bitcoin-stratum-mining.md` for the real-machine runbook.
+
 ## Run locally
 
 ```bash
