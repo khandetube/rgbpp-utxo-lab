@@ -25,22 +25,22 @@ fn main() {
         .trim()
         .to_owned();
 
-    let header_hex = get_text(&format!(
-        "{TESTNET_API}/block/{block_hash_hex}/header"
-    ))
-    .trim()
-    .to_owned();
+    let header_hex = get_text(&format!("{TESTNET_API}/block/{block_hash_hex}/header"))
+        .trim()
+        .to_owned();
 
     let header_bytes = hex::decode(&header_hex).expect("invalid header hex");
-    assert_eq!(header_bytes.len(), 80, "Bitcoin block header must be 80 bytes");
+    assert_eq!(
+        header_bytes.len(),
+        80,
+        "Bitcoin block header must be 80 bytes"
+    );
 
     let header: bitcoin::block::Header =
         deserialize(&header_bytes).expect("failed to decode Bitcoin block header");
 
     let calculated_hash = header.block_hash();
-    let reported_hash: BlockHash = block_hash_hex
-        .parse()
-        .expect("invalid reported block hash");
+    let reported_hash: BlockHash = block_hash_hex.parse().expect("invalid reported block hash");
 
     let target = Target::from_compact(header.bits);
     let pow_valid = verify_header(&header, target);
@@ -59,5 +59,8 @@ fn main() {
     println!("pow_valid={pow_valid}");
 
     assert_eq!(calculated_hash, reported_hash, "header hash mismatch");
-    assert!(pow_valid, "real Testnet3 header does not satisfy its target");
+    assert!(
+        pow_valid,
+        "real Testnet3 header does not satisfy its target"
+    );
 }
