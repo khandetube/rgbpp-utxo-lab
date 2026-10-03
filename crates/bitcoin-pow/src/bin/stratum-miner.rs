@@ -1,5 +1,5 @@
 use bitcoin::hashes::Hash;
-use bitcoin_pow::stratum::{configure_version_rolling, connect_stratum, mine_stratum_job_cancelable, next_extranonce2, send_request, subscribe_and_authorize, MinerStats, StratumConfig, StratumJob};
+use bitcoin_pow::stratum::{configure_version_rolling, connect_stratum, mine_stratum_job_cancelable_with_version, next_extranonce2, send_request, subscribe_and_authorize, MinerStats, StratumConfig, StratumJob};
 use num_bigint::BigUint;
 use serde_json::Value;
 use std::collections::HashSet;
@@ -88,7 +88,7 @@ fn run_session(endpoint:&str, username:&str, password:&str, threads:usize) -> Re
                 match handle_control_message(&msg,&mut stream,&session,&mut share_target,&mut counter,&mut request_id,&mut pending_submissions)? {
                     ControlAction::NewJob(job_item) => break job_item,
                     ControlAction::RestartMining => continue,
-                    ControlAction::None => account_submission(&msg,&pending_submissions,&stats),
+                    ControlAction::None => account_submission(&msg,&mut pending_submissions,&stats),
                 }
             }
         };
@@ -159,9 +159,9 @@ enum ControlAction {
     RestartMining,
 }
 
-fn account_submission(msg:&Value,pending:&HashSet<u64>,stats:&MinerStats) {
+fn account_submission(msg:&Value,pending:&mut HashSet<u64>,stats:&MinerStats) {
     if let Some(id)=msg["id"].as_u64() {
-        if pending.contains(&id) {
+        if pending.remove(&id) {
             if msg["result"]==Value::Bool(true) {
                 stats.accepted.fetch_add(1,Ordering::Relaxed);
                 println!("SUBMISSION ACCEPTED id={id}");
@@ -187,6 +187,14 @@ fn handle_control_message(
             let difficulty=msg["params"].get(0).ok_or("set_difficulty missing value")?;
             *share_target=Some(StratumJob::share_target_from_difficulty(difficulty)?);
             println!("pool share difficulty changed: {difficulty}; waiting for next job before applying it");
+        }
+        Some("mining.set_version_mask") => {
+            let mask_text=msg["params"].get(0).and_then(Value::as_str).ok_or("set_version_mask missing mask")?;
+            let mask=u32::from_str_radix(mask_text,16)?;
+            let mut guard=session.write().map_err(|_| "session lock poisoned")?;
+            guard.version_mask=mask;
+            println!("pool changed version rolling mask={mask:08x}; applying to subsequent work");
+            Ok(ControlAction::RestartMining)
         }
         Some("mining.set_extranonce") => {
             let params=msg["params"].as_array().ok_or("set_extranonce params missing")?;
@@ -218,9 +226,4 @@ fn handle_control_message(
     Ok(ControlAction::None)
 }
 
-fn next_version_bits(current:u32,mask:u32)->u32 { let v=(current.wrapping_add(1)) & mask; if v==0 { mask & (!mask+1) } else { v } }
-
-fn mine_stratum_job_cancelable_with_version(job:&StratumJob,session:&bitcoin_pow::stratum::StratumSession,extranonce2:Vec<u8>,threads:usize,stats:&MinerStats,share_target:&BigUint,cancel:&AtomicBool,version_bits:Option<u32>)->Option<(u32,bitcoin::BlockHash)> {
-    let _ = version_bits;
-    mine_stratum_job_cancelable(job,session,extranonce2,threads,stats,share_target,cancel)
-}
+fn next_version_bits(current:u32,mask:u32)->u32 { current.wrapping_add(1) & mask }
