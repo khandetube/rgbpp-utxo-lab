@@ -90,3 +90,13 @@ The repository can verify public infrastructure without secrets, but a complete 
 The implementation follows the documented RGB++ sequence: construct the partial CKB transaction, build/sign the Bitcoin transaction, submit Bitcoin, inject the Bitcoin transaction ID into the RGB++ CKB transaction, then sign and submit the final CKB transaction.
 
 This matches the current RGB++ documentation for xUDT transfer on Bitcoin Testnet3.
+
+## 7. Official testnet references
+
+Before any broadcast, verify the network and protocol details against the current official documentation:
+
+- RGB++ xUDT transfer documentation: https://rgbpp.com/docs/examples/udt
+- RGB++ protocol overview: https://rgbpp.com/docs/introduction
+- CKB Pudge Testnet faucet: https://faucet.nervos.org/
+
+These references are operational inputs, not substitutes for checking the actual transaction, asset and receiver state at execution time.
