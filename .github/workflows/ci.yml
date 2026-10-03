@@ -16,5 +16,5 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo test --workspace
       - run: cargo check --workspace
-      - name: Execute real Bitcoin-style PoW smoke test
+      - name: Verify live Bitcoin Testnet3 block header
         run: cargo run -p bitcoin-pow --release
