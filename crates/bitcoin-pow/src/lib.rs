@@ -1,4 +1,5 @@
 pub mod route_orchestrator;
+pub mod sha256d_backend;
 pub mod pool_supervisor;
 pub mod stratum;
 pub mod template;
