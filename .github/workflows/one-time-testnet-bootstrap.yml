@@ -65,14 +65,13 @@ jobs:
           CKB_ADDRESS=$(node -e 'console.log(require("/tmp/wallet.json").ckbAddress)')
           node --input-type=module <<'EOF'
           import { ccc } from "@ckb-ccc/shell";
-          const address = process.env.CKB_ADDRESS;
+          const fs = await import("node:fs");
+          const address = JSON.parse(fs.readFileSync("/tmp/wallet.json", "utf8")).ckbAddress;
           const client = new ccc.ClientPublicTestnet();
           const tip = await client.getTipBlockNumber();
           console.log("ckb_testnet_tip=" + tip);
           console.log("ckb_address=" + address);
           EOF
-        env:
-          CKB_ADDRESS: ${{ steps.wallet.outputs.ckb_address }}
 
       - name: Remove ephemeral wallet material
         if: always()
