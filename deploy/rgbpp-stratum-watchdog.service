@@ -1,7 +1,6 @@
 [Unit]
 Description=RGB++ UTXO Lab Stratum Miner Watchdog
 After=rgbpp-stratum-miner.service
-Requires=rgbpp-stratum-miner.service
 
 [Service]
 Type=oneshot
