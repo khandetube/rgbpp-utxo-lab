@@ -82,7 +82,9 @@ if (!/^0x[0-9a-f]{64}$/i.test(udtTypeArgs)) {
 if (!Object.values(AddressType).includes(btcAddressType)) {
   throw new Error(`Unsupported BTC address type: ${btcAddressType}`);
 }
-if (transferAmount <= 0n) throw new Error("RGBPP_TRANSFER_AMOUNT must be > 0");
+if (!/^\d+$/.test(process.env.RGBPP_TRANSFER_AMOUNT ?? "1") || transferAmount <= 0n) {
+  throw new Error("RGBPP_TRANSFER_AMOUNT must be a positive integer");
+}
 if (!/^\\d+$/.test(process.env.RGBPP_TRANSFER_AMOUNT ?? "1")) {
   throw new Error("RGBPP_TRANSFER_AMOUNT must be a positive integer");
 }
