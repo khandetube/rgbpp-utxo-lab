@@ -33,13 +33,13 @@ This project deliberately starts with a fully local, deterministic core so that 
 - executable examples
 - automated tests
 
-### Planned integration milestones
+### Current integration milestones
 
 1. CKB JSON-RPC adapter
 2. real testnet cell collection
-3. signed transaction construction
-4. integration tests against a local/dev CKB node
-5. carefully scoped RGB++ workflow adapter using verified upstream protocol APIs
+3. official CKB SDK signed transaction construction with guarded broadcast
+4. RGB++ TypeScript integration using the CCC-based RGB++ SDK
+5. testnet preflight validation and guarded Bitcoin Testnet3 / CKB testnet execution path
 
 No protocol-specific API is fabricated in this repository.
 
@@ -72,6 +72,6 @@ The core examples are deterministic and do not require network access.
 - CKB RPC/indexer integration
 - Official CKB SDK transaction construction and guarded testnet broadcast path
 - rust-bitcoin outpoint primitives
-- RGB++ SDK 0.7.3 TypeScript integration for real xUDT transfer construction, PSBT generation, guarded BTC broadcast, and RGB++ queue submission
+- CCC-based RGB++ SDK TypeScript integration for real xUDT transfer construction, PSBT generation, guarded BTC broadcast, and RGB++ queue submission
 
 The final end-to-end RGB++ execution requires user-supplied, funded testnet BTC/CKB accounts, an actual RGB++ xUDT asset, live RGB++ lock args/UTXOs, and a valid service token. Those are external chain state and secrets, so the repository never invents or stores them.
