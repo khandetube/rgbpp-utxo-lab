@@ -59,6 +59,13 @@ Optional repository Variables:
 
 Secrets must contain only operator-controlled **Bitcoin Testnet3 / CKB Testnet** credentials. Never use mainnet keys, leaked credentials, or third-party wallets.
 
+
+## Funding & ecosystem development
+
+The project is also being prepared for transparent ecosystem funding and technical partnerships. A concise, evidence-based funding brief is available at [docs/investor-ecosystem-brief.md](docs/investor-ecosystem-brief.md).
+
+The funding plan is milestone-based: real testnet verification, reproducible evidence, developer tooling and security hardening. No adoption, revenue, investor commitment or production deployment is claimed before it is independently demonstrated.
+
 ## Project structure
 
 - `crates/utxo-model` — Bitcoin-style UTXO domain model
