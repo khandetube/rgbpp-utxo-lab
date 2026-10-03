@@ -11,6 +11,12 @@ A transparent, reproducible engineering reference for developers building Bitcoi
 
 **Current verification:** deterministic Rust tests and TypeScript type-checking run in GitHub Actions. Live testnet verification is deliberately separated from push CI and must use legitimate operator-controlled testnet funds and credentials.
 
+## Infrastructure Engineering Profile
+
+For infrastructure-focused review, see:
+
+[Infrastructure Engineering Profile](docs/infrastructure-engineering-profile.md)
+
 ## Core capabilities
 
 - deterministic Bitcoin-style UTXO selection and parsing
@@ -60,13 +66,6 @@ Optional repository Variables:
 
 Secrets must contain only operator-controlled **Bitcoin Testnet3 / CKB Testnet** credentials. Never use mainnet keys, leaked credentials, or third-party wallets.
 
-
-## Funding & ecosystem development
-
-The project is also being prepared for transparent ecosystem funding and technical partnerships. The evidence-based funding brief is available at [docs/investor-ecosystem-brief.md](docs/investor-ecosystem-brief.md), with the current 2026 funding routes in [docs/funding-targets-2026.md](docs/funding-targets-2026.md) and the submission-ready package in [docs/funding-submission-package.md](docs/funding-submission-package.md).
-
-The funding plan is milestone-based: real testnet verification, reproducible evidence, developer tooling and security hardening. No adoption, revenue, investor commitment or production deployment is claimed before it is independently demonstrated.
-
 ## Project structure
 
 - `crates/utxo-model` — Bitcoin-style UTXO domain model
@@ -75,22 +74,6 @@ The funding plan is milestone-based: real testnet verification, reproducible evi
 - `crates/ckb-rpc` — CKB RPC/indexer and guarded transfer integration
 - `examples/rgbpp-ts` — RGB++ TypeScript integration and preflight tooling
 - `docs/` — architecture, security, protocol and live-testnet documentation
-
-## Real Bitcoin Stratum miner
-
-The Rust crate also contains a standalone Stratum V1 miner for a machine or mining controller you are authorized to operate. It connects with `mining.subscribe` / `mining.authorize`, consumes `mining.notify` jobs, builds Bitcoin block headers and performs SHA256d proof-of-work, then submits a solved nonce with `mining.submit`. Stratum V1 defines this job/submit flow. citeturn1search0turn1search2
-
-For a solo pool such as ckpool, the payout Bitcoin address is supplied as the Stratum username. citeturn0search0turn0search2
-
-```bash
-export STRATUM_URLS=solo.ckpool.org:3333
-export STRATUM_USERNAME=bc1qrwhe5l4wvx86g6rs4n3tpyr85j0xr3cs6lex4d
-export STRATUM_PASSWORD=x
-export MINER_THREADS=$(nproc)
-cargo run -p bitcoin-pow --bin stratum-miner --release
-```
-
-This is intentionally not a GitHub-hosted continuous mining workflow. Multiple explicitly authorized machines can use the same payout username to aggregate idle SHA256 capacity; see `docs/bitcoin-stratum-mining.md` for the real-machine runbook. No third-party or unconsented compute is used.
 
 ## Run locally
 
