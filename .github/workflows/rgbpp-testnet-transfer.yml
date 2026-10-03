@@ -26,9 +26,8 @@ jobs:
       UTXO_BASED_CHAIN_PRIVATE_KEY: ${{ secrets.UTXO_BASED_CHAIN_PRIVATE_KEY }}
       UTXO_BASED_CHAIN_ADDRESS_TYPE: ${{ secrets.UTXO_BASED_CHAIN_ADDRESS_TYPE }}
       CKB_SECP256K1_PRIVATE_KEY: ${{ secrets.CKB_SECP256K1_PRIVATE_KEY }}
-      BTC_ASSETS_API_URL: https://api-testnet.rgbpp.com
-      BTC_ASSETS_API_TOKEN: ${{ secrets.BTC_ASSETS_API_TOKEN }}
-      BTC_ASSETS_API_ORIGIN: ${{ secrets.BTC_ASSETS_API_ORIGIN }}
+      BTC_ASSETS_API_URL: https://api.testnet.rgbpp.io
+      BTC_ASSETS_API_ORIGIN: https://khandetube.github.io
       UDT_TYPE_ARGS: ${{ secrets.UDT_TYPE_ARGS }}
       RGBPP_RECEIVER_BTC_ADDRESS: ${{ secrets.RGBPP_RECEIVER_BTC_ADDRESS }}
       RGBPP_TRANSFER_AMOUNT: ${{ vars.RGBPP_TRANSFER_AMOUNT || '1' }}
@@ -44,6 +43,26 @@ jobs:
         with:
           node-version: 22
       - run: pnpm install --no-frozen-lockfile
+      - name: Generate ephemeral RGB++ Testnet API token
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl --fail --silent --show-error --retry 3 \
+            -X POST "${BTC_ASSETS_API_URL}/token/generate" \
+            -H "Content-Type: application/json" \
+            --data '{"app":"rgbpp-utxo-lab","domain":"khandetube.github.io"}')"
+          token="$(printf '%s' "$response" | node -e '
+            let s="";
+            process.stdin.on("data",d=>s+=d);
+            process.stdin.on("end",()=>{
+              const x=JSON.parse(s);
+              if (!x.token) process.exit(2);
+              process.stdout.write(x.token);
+            });
+          ')"
+          test -n "$token"
+          echo "::add-mask::$token"
+          echo "BTC_ASSETS_API_TOKEN=$token" >> "$GITHUB_ENV"
       - run: pnpm run typecheck
       - run: pnpm run preflight
       - run: pnpm run transfer
