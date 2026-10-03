@@ -233,3 +233,47 @@ pub fn next_extranonce2(counter: u128, size: usize) -> Result<Vec<u8>, StratumEr
     let bytes=counter.to_be_bytes();
     Ok(bytes[16-size..].to_vec())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extranonce2_is_fixed_width_big_endian() {
+        assert_eq!(hex::encode(next_extranonce2(0, 4).unwrap()), "00000000");
+        assert_eq!(hex::encode(next_extranonce2(1, 4).unwrap()), "00000001");
+        assert_eq!(hex::encode(next_extranonce2(0x1234, 4).unwrap()), "00001234");
+    }
+
+    #[test]
+    fn extranonce2_rejects_invalid_width() {
+        assert!(next_extranonce2(0, 0).is_err());
+        assert!(next_extranonce2(0, 17).is_err());
+    }
+
+    #[test]
+    fn nonce_is_little_endian_in_header_tail() {
+        let prefix = [0u8; 80];
+        let header = StratumJob::nonce_header(&prefix, 0x12345678);
+        assert_eq!(&header[76..80], &[0x78, 0x56, 0x34, 0x12]);
+    }
+
+    #[test]
+    fn notify_parsing_and_target_conversion_are_consistent() {
+        let params = vec![
+            Value::String("job-1".into()),
+            Value::String("00".repeat(32)),
+            Value::String("aa".into()),
+            Value::String("bb".into()),
+            Value::Array(vec![]),
+            Value::String("01000000".into()),
+            Value::String("207fffff".into()),
+            Value::String("65000000".into()),
+            Value::Bool(true),
+        ];
+        let job = StratumJob::from_notify(&params).unwrap();
+        assert_eq!(job.job_id, "job-1");
+        assert_eq!(job.prevhash.len(), 32);
+        assert_eq!(job.target(), Target::from_compact(CompactTarget::from_consensus(0x207fffff)));
+    }
+}
