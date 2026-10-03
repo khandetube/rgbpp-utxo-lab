@@ -118,3 +118,19 @@ Record only:
 - on-chain payment only after independently verifying the transaction
 
 Never record an investor, sponsor, grant, partnership, user, or payment as real before there is evidence.
+
+
+## 8. Fresh ecosystem scan — 2026-10-03
+
+Official CKB ecosystem activity remains active. The latest Nervos Talk feed includes new infrastructure, Spark and Community Fund proposals, while the recent ecosystem update lists RGB++-related work among active Spark projects. This confirms that the repository should position itself as concrete developer infrastructure with reproducible evidence, not as a generic crypto investment pitch.
+
+### Immediate outreach sequence
+
+1. **Spark / CKB:** finish the first independently verifiable RGB++ Testnet3 transfer and then publish a narrowly scoped proposal with explicit acceptance criteria.
+2. **Community Fund DAO:** prepare only after the first technical milestone and evidence of ecosystem demand.
+3. **Tether:** monitor current grants/bounties and apply only where an actual open task or integration matches the repository; the portal currently emphasizes open-stack tooling, integrations, documentation, applications, and research.
+4. **Direct ecosystem conversations:** use official Nervos Talk channels to request technical feedback and identify wallet/explorer/infrastructure integration opportunities.
+
+### Current evidence rule
+
+The existence of active or recently approved projects is evidence that these programs are operating; it is **not** evidence that this repository has been accepted or funded. Any future funding amount must be treated as uncommitted until written approval is received, and as received funding only after independently verifiable on-chain payment.
