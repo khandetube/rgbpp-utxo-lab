@@ -1,0 +1,49 @@
+name: Stratum connectivity probe
+
+on:
+  push:
+    paths:
+      - ".github/workflows/stratum-connectivity.yml"
+      - "crates/bitcoin-pow/src/stratum.rs"
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    strategy:
+      fail-fast: false
+      matrix:
+        endpoint:
+          - public-pool.io:3333
+          - stratum.ckpool.org:3333
+    steps:
+      - name: Probe Stratum V1
+        env:
+          ENDPOINT: ${{ matrix.endpoint }}
+          STRATUM_USERNAME: bc1qrwhe5l4wvx86g6rs4n3tpyr85j0xr3cs6lex4d
+        run: |
+          python3 - <<'PY'
+          import json, os, socket, sys
+          host, port = os.environ["ENDPOINT"].rsplit(":", 1)
+          port = int(port)
+          print(f"connecting to {host}:{port}")
+          with socket.create_connection((host, port), timeout=15) as s:
+              s.settimeout(15)
+              msg = {"id": 1, "method": "mining.subscribe",
+                     "params": ["rgbpp-utxo-lab/connectivity-probe"]}
+              s.sendall((json.dumps(msg) + "\n").encode())
+              buf = b""
+              while b"\n" not in buf:
+                  chunk = s.recv(4096)
+                  if not chunk:
+                      raise RuntimeError("server closed connection")
+                  buf += chunk
+              line = buf.split(b"\n", 1)[0].decode()
+              response = json.loads(line)
+              print("STRATUM_RESPONSE:", json.dumps(response, separators=(",", ":")))
+              if response.get("id") != 1 or response.get("result") is None:
+                  print("Stratum subscribe was not accepted", file=sys.stderr)
+                  sys.exit(1)
+          print("STRATUM_CONNECTIVITY=OK")
+          PY
