@@ -27,3 +27,11 @@ After independently checking the receiver, asset, amount and fee:
 The code rejects networks other than Bitcoin Testnet3 and requires the explicit confirmation before broadcast.
 
 The final end-to-end transaction still depends on funded testnet accounts, a real RGB++ testnet xUDT and valid RGB++ testnet API access.
+
+## xUDT configuration
+
+The example now resolves the deployed CKB `KnownScript.XUdt` and its cell dependency through the CKB client. You only need the **unique xUDT type arguments** for the real RGB++ asset.
+
+The RGB++ official UDT documentation describes the transfer flow as: build the CKB partial transaction, build/sign the BTC PSBT, inject the BTC transaction ID, construct the RGB++ witness, then submit the final CKB transaction. citeturn0search0
+
+For Meepo Testnet, the official RGB++ resources publish the deployed RGB++ script parameters and the Testnet3 BTC-assets API endpoints. citeturn0search1
