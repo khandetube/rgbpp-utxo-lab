@@ -108,6 +108,23 @@ Every claim in an application should be backed by one of:
 - written committee decision;
 - independently verifiable on-chain funding transaction.
 
+
+## Verified live-chain evidence update — 2026-10-03
+
+The Bitcoin PoW verification milestone is now reproducibly passing in public GitHub Actions.
+
+- Rust CI run: https://github.com/khandetube/rgbpp-utxo-lab/actions/runs/37105866071
+- Final commit: e73e79fea59b46df2a533fe465e76a820a8ee8f7
+- Rust formatting, workspace tests and workspace check: passed.
+- Live Bitcoin Testnet3 header verification: passed.
+- Verified Testnet3 height during the run: 5,155,024.
+- Calculated block hash matched the reported block hash: 0000000000076ae0db0656ada8b11a23673d8e3f5e5c43be993a6f5dba6ccc49.
+- The decoded header satisfied its compact-target PoW check.
+
+This evidence proves live Testnet3 header retrieval and independent PoW verification. It does **not** constitute a mined block, a funded wallet, an RGB++ asset issuance, an RGB++ transfer, funding approval, or investor commitment.
+
+The next technical gate remains a real, independently verifiable RGB++ Testnet3 issuance/transfer using legitimate operator-controlled BTC Testnet3 and CKB Testnet resources.
+
 ## What is not claimed
 
 At the time of this document:
