@@ -1,3 +1,4 @@
+pub mod stratum;
 pub mod template;
 
 use bitcoin::blockdata::block::Header;
