@@ -2,6 +2,11 @@ name: RGB++ Live Testnet Preflight
 
 on:
   workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "examples/rgbpp-ts/**"
+      - ".github/workflows/rgbpp-live-preflight.yml"
 
 jobs:
   public-preflight:
