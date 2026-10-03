@@ -68,7 +68,10 @@ pub fn build_transfer(
 }
 
 pub fn cell_out_point(tx_hash: impl Into<String>, index: u32) -> CellOutPoint {
-    CellOutPoint { tx_hash: tx_hash.into(), index }
+    CellOutPoint {
+        tx_hash: tx_hash.into(),
+        index,
+    }
 }
 
 #[cfg(test)]
@@ -125,7 +128,10 @@ mod tests {
     #[test]
     fn fee_is_accounted_for_before_selection() {
         let u = Utxo {
-            outpoint: OutPoint { txid: "demo".into(), vout: 0 },
+            outpoint: OutPoint {
+                txid: "demo".into(),
+                vout: 0,
+            },
             value: 105,
         };
         let s = build_transfer(vec![u], 100, 5).unwrap();
