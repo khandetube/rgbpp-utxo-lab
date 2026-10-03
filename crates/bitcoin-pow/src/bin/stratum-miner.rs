@@ -4,7 +4,7 @@ use num_bigint::BigUint;
 use serde_json::Value;
 use std::collections::HashSet;
 use std::env;
-use std::io::BufRead;
+use std::io::{BufRead, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc};
 use std::thread;
@@ -45,10 +45,10 @@ fn run_session(endpoint:&str, username:&str, password:&str, threads:usize) -> Re
     println!("connected to {endpoint}");
     let version_mask=env::var("VERSION_ROLLING_MASK").ok().and_then(|v| u32::from_str_radix(v.trim_start_matches("0x"),16).ok()).unwrap_or(0x1fffe000);
     let version_min_bits=env::var("VERSION_ROLLING_MIN_BITS").ok().and_then(|v| v.parse().ok()).unwrap_or(2u64);
+    let (mut session,mut reader)=subscribe_and_authorize(&mut stream,username,password)?;
     let configure_id=10u64;
-    let negotiated_mask=configure_version_rolling(&mut stream,configure_id,version_mask,version_min_bits).unwrap_or(None);
+    let negotiated_mask=configure_version_rolling(&mut stream,&mut reader,configure_id,version_mask,version_min_bits).unwrap_or(None);
     println!("BIP310 version rolling mask={}",negotiated_mask.map(|m| format!("{m:08x}")).unwrap_or_else(|| "disabled".into()));
-    let (mut session,reader)=subscribe_and_authorize(&mut stream,username,password)?;
     session.version_mask=negotiated_mask.unwrap_or(0);
     println!("authorized; extranonce1={} extranonce2_size={} version_mask={:08x}",hex::encode(&session.extranonce1),session.extranonce2_size,session.version_mask);
 
@@ -104,7 +104,8 @@ fn run_session(endpoint:&str, username:&str, password:&str, threads:usize) -> Re
         let mine_job=job.clone();
         let mine_target=target.clone();
         let mine_extranonce2=extranonce2.clone();
-        let rolled_bits=if let Some(mask)=negotiated_mask { active_version_bits=next_version_bits(active_version_bits,mask); Some(active_version_bits) } else { None };
+        let live_mask=session.read().map_err(|_| "session lock poisoned")?.version_mask;
+        let rolled_bits=if live_mask != 0 { active_version_bits=next_version_bits(active_version_bits,live_mask); Some(active_version_bits) } else { None };
         let handle=thread::spawn(move || mine_stratum_job_cancelable_with_version(&mine_job,&mine_session,mine_extranonce2,threads,&mine_stats,&mine_target,&mine_cancel,rolled_bits));
 
         loop {
@@ -208,7 +209,7 @@ fn handle_control_message(
         }
         Some("mining.ping") => {
             let id=msg["id"].as_u64().ok_or("mining.ping id missing")?;
-            send_request(stream,id,"mining.pong",Value::Array(vec![]))?;
+            let response=serde_json::to_string(&serde_json::json!({"id":id,"result":true,"error":null}))?;stream.write_all(response.as_bytes())?;stream.write_all(b"\n")?;stream.flush()?;
         }
         Some("client.show_message") => println!("pool message: {}",msg["params"].get(0).unwrap_or(&Value::Null)),
         Some("client.reconnect") => return Err("pool requested reconnect".into()),
