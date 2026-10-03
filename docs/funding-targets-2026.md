@@ -8,12 +8,13 @@ This document tracks funding routes that are technically relevant to RGB++ UTXO 
 
 CKB's Spark Program explicitly supports digital-sovereign infrastructure and primitives, including developer tooling and RGB++ innovations. The public program describes a 1–2 month validation-oriented cycle with milestone funding and public progress tracking.
 
-Current 2026 guidance:
-- overall funding ceiling: $2,000 equivalent;
-- requests above $1,000 require a detailed complexity justification;
-- applications are handled on Nervos Talk with the `Spark-Program` tag;
-- a reproducible "How to Verify" section is expected;
-- payment terms have varied during 2026, so the exact current payment option must be confirmed at submission.
+Current 2026 operating guidance:
+- Recent Spark applications show a small, milestone-defined scope is expected; do not assume a generic investment round.
+- The August 2026 CKB ecosystem update states that new Spark applicants should create the project repository under the GitHub account used for identity verification (for multi-applicant teams, the primary applicant creates it and others fork it).
+- Applications and progress are publicly discussed on Nervos Talk with the `Spark-Program` tag.
+- A reproducible "How to Verify" section remains part of the evidence standard for this project.
+- Recent 2026 Spark examples have been paid in CKB; the exact amount and payment terms must be confirmed in the specific approval thread before treating them as committed funding.
+- Current ecosystem activity includes new/pending Spark projects, so this route is active but competitive and not guaranteed.
 
 **Our application evidence:**
 - public Rust + TypeScript repository
@@ -84,3 +85,36 @@ No funding application should claim:
 - production deployments that have not been independently demonstrated.
 
 Real crypto funding will be recorded only after an actual on-chain payment is received and independently verifiable.
+
+
+## 7. Outreach status — October 2026
+
+### Priority A — Spark / CKB ecosystem
+**Action:** prepare the submission package around one independently verifiable RGB++ Testnet3 transfer and a narrowly scoped 4-week milestone plan.
+
+**Public evidence to present:**
+- repository: https://github.com/khandetube/rgbpp-utxo-lab
+- architecture and security docs
+- green CI runs
+- public RGB++ preflight
+- real Testnet3 transfer evidence once completed
+
+**Do not submit yet as a funded/approved project.** The repository currently has no verified grant commitment.
+
+### Priority B — CKB Community Fund DAO
+Use this route for a broader follow-on proposal after technical evidence and ecosystem demand are demonstrated. The official CKB developer resources point applicants to the Community Fund DAO rules and process.
+
+### Priority C — Tether Developer Grants / Bounties
+Tether's current developer portal explicitly advertises grants and bounties paid in USD₮ or Sats. The portal's listed focus areas are QVAC, MOS, WDK, Pears, documentation/onboarding, applications on Tether's stack, research, and tooling/integrations/open standards. RGB++ UTXO Lab should only apply when a concrete task or integration genuinely matches that scope; a generic request for crypto funding is not sufficient.
+
+### Outreach evidence ledger
+Record only:
+- date contacted
+- official application URL/thread
+- exact requested amount and currency
+- requested deliverables
+- reply/status
+- committed amount only after written confirmation
+- on-chain payment only after independently verifying the transaction
+
+Never record an investor, sponsor, grant, partnership, user, or payment as real before there is evidence.
