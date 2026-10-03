@@ -127,3 +127,6 @@ mod tests {
         assert_eq!(s.change, 0);
     }
 }
+
+
+// CKB cell selection milestone.
