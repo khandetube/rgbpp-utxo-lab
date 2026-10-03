@@ -222,6 +222,19 @@ pub fn mine_stratum_job(
     stats: &MinerStats,
     share_target: &BigUint,
 ) -> Option<(u32, BlockHash)> {
+    let cancel = AtomicBool::new(false);
+    mine_stratum_job_cancelable(job, session, extranonce2, threads, stats, share_target, &cancel)
+}
+
+pub fn mine_stratum_job_cancelable(
+    job: &StratumJob,
+    session: &StratumSession,
+    extranonce2: Vec<u8>,
+    threads: usize,
+    stats: &MinerStats,
+    share_target: &BigUint,
+    cancel: &AtomicBool,
+) -> Option<(u32, BlockHash)> {
     let prefix=job.header_prefix(session,&extranonce2).ok()?;
     let target=job.target().ok()?;
     let found=Arc::new(AtomicBool::new(false));
@@ -237,7 +250,7 @@ pub fn mine_stratum_job(
                 let mut nonce=worker as u32;
                 let stride=threads as u32;
                 loop {
-                    if found.load(Ordering::Relaxed) { break; }
+                    if found.load(Ordering::Relaxed) || cancel.load(Ordering::Relaxed) { break; }
                     let header=StratumJob::nonce_header(&prefix,nonce);
                     let digest=double_sha256(&header);
                     stats_ref.hashes.fetch_add(1, Ordering::Relaxed);
@@ -255,6 +268,7 @@ pub fn mine_stratum_job(
             });
         }
     });
+    if cancel.load(Ordering::Relaxed) { return None; }
     result.lock().unwrap().take()
 }
 
