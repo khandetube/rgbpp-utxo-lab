@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "transfer": "tsx transfer.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "preflight": "tsx preflight.ts"
   },
   "dependencies": {
     "@ckb-ccc/rgbpp": "0.0.0-canary-20260204233059",
