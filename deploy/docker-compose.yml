@@ -1,0 +1,15 @@
+services:
+  bitcoin-stratum-miner:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    init: true
+    env_file:
+      - ./miner.env
+    stop_grace_period: 15s
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
