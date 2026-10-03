@@ -1,0 +1,74 @@
+name: Bitcoin Regtest Mining Integration
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  regtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Bitcoin Core
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y bitcoind bitcoin-cli
+      - name: Start isolated regtest node
+        shell: bash
+        run: |
+          set -euo pipefail
+          datadir="$RUNNER_TEMP/bitcoin"
+          mkdir -p "$datadir"
+          bitcoind -regtest -daemon -datadir="$datadir" -fallbackfee=0.0002
+          for i in $(seq 1 30); do
+            if bitcoin-cli -regtest -datadir="$datadir" getblockchaininfo >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          bitcoin-cli -regtest -datadir="$datadir" getblockchaininfo >/dev/null
+          bitcoin-cli -regtest -datadir="$datadir" createwallet "lab" >/dev/null
+      - name: Mine and submit one real regtest block through the project miner
+        shell: bash
+        env:
+          BITCOIN_TESTNET_RPC_URL: http://127.0.0.1:18443
+          BITCOIN_TESTNET_SUBMIT: "YES"
+          BITCOIN_TESTNET_CONFIRM: "YES"
+          MAX_ATTEMPTS: "100000"
+        run: |
+          set -euo pipefail
+          datadir="$RUNNER_TEMP/bitcoin"
+          cookie="$datadir/regtest/.cookie"
+          export BITCOIN_TESTNET_RPC_USER="$(cut -d: -f1 "$cookie")"
+          export BITCOIN_TESTNET_RPC_PASSWORD="$(cut -d: -f2- "$cookie")"
+          address="$(bitcoin-cli -regtest -datadir="$datadir" -rpcwallet=lab getnewaddress)"
+          echo "MINER_REWARD_ADDRESS=$address" >> "$GITHUB_ENV"
+          script="$(bitcoin-cli -regtest -datadir="$datadir" -rpcwallet=lab getaddressinfo "$address" | python3 -c 'import json,sys; print(json.load(sys.stdin)["scriptPubKey"])')"
+          export BITCOIN_MINER_SCRIPT_PUBKEY="$script"
+          cargo run -p bitcoin-pow --bin testnet3_miner --release
+      - name: Mature and verify the mined reward
+        shell: bash
+        run: |
+          set -euo pipefail
+          datadir="$RUNNER_TEMP/bitcoin"
+          address="$MINER_REWARD_ADDRESS"
+          mapfile -t blocks < <(bitcoin-cli -regtest -datadir="$datadir" generatetoaddress 100 "$address")
+          test "${#blocks[@]}" -eq 100
+          balance="$(bitcoin-cli -regtest -datadir="$datadir" -rpcwallet=lab getbalance)"
+          confirmations="$(bitcoin-cli -regtest -datadir="$datadir" -rpcwallet=lab listreceivedbyaddress 1 true "$address" | python3 -c 'import json,sys; x=json.load(sys.stdin); print(x[0]["confirmations"] if x else 0)')"
+          echo "regtest_reward_address=$address"
+          echo "regtest_wallet_balance=$balance"
+          echo "regtest_reward_confirmations=$confirmations"
+          test "$confirmations" -ge 1
+          python3 - "$balance" <<'PY'
+import decimal, sys
+balance = decimal.Decimal(sys.argv[1])
+assert balance > 0, f"expected positive regtest balance, got {balance}"
+print(f"verified_positive_regtest_balance={balance}")
+PY
