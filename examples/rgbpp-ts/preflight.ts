@@ -16,6 +16,15 @@ function required(name: string): string {
   return value;
 }
 
+async function withTimeout<T>(label: string, operation: Promise<T>, ms = 60_000): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([operation, new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(label + " timed out after " + ms + "ms")), ms);
+    })]);
+  } finally { if (timer) clearTimeout(timer); }
+}
+
 function httpsUrl(name: string): string {
   const value = required(name);
   if (!/^https:\/\//i.test(value)) {
@@ -44,8 +53,8 @@ if (!Object.values(AddressType).includes(btcAddressType)) {
   throw new Error(`Unsupported BTC address type: ${btcAddressType}`);
 }
 
-if (!/^0x[0-9a-f]+$/i.test(udtTypeArgs) || udtTypeArgs.length % 2 !== 0) {
-  throw new Error("UDT_TYPE_ARGS must be an even-length 0x-prefixed hex string");
+if (!/^0x[0-9a-f]{64}$/i.test(udtTypeArgs)) {
+  throw new Error("UDT_TYPE_ARGS must be a 32-byte 0x-prefixed hex token identifier");
 }
 
 if (!/^https:\/\//i.test(btcApiOrigin)) {
@@ -55,7 +64,7 @@ if (!/^https:\/\//i.test(btcApiOrigin)) {
 const networkConfig = buildNetworkConfig(networkName);
 const ckbClient = new ccc.ClientPublicTestnet();
 
-const tip = await ckbClient.getTip();
+const tip = await withTimeout("CKB testnet tip query", ckbClient.getTip(), 45_000);
 if (tip < 0n) throw new Error("Invalid CKB testnet tip");
 
 const scriptProvider = createScriptProvider(ckbClient);
@@ -65,7 +74,7 @@ const rgbppUdtClient = new RgbppUdtClient(
   scriptProvider,
 );
 
-const xuDtScriptInfo = await ckbClient.getKnownScript(ccc.KnownScript.XUdt);
+const xuDtScriptInfo = await withTimeout("CKB KnownScript.XUdt resolution", ckbClient.getKnownScript(ccc.KnownScript.XUdt), 45_000);
 if (!xuDtScriptInfo.cellDeps.length) {
   throw new Error("CKB KnownScript.XUdt returned no cell dependency");
 }
@@ -77,8 +86,8 @@ const btcWallet = new PrivateKeyRgbppBtcWallet(
   { url: btcApiUrl, token: btcApiToken, origin: btcApiOrigin },
 );
 
-const btcAddress = await btcWallet.getAddress();
-const rgbppScriptInfos = await rgbppUdtClient.getRgbppScriptInfos();
+const btcAddress = await withTimeout("BTC address derivation", btcWallet.getAddress(), 45_000);
+const rgbppScriptInfos = await withTimeout("RGB++ script info resolution", rgbppUdtClient.getRgbppScriptInfos(), 45_000);
 
 console.log("preflight=ok");
 console.log("network=", networkName);
