@@ -1,5 +1,6 @@
 use bitcoin::consensus::{deserialize, serialize};
 use bitcoin::hashes::{sha256d, Hash};
+use bitcoin::pow::{CompactTarget, Target};
 use bitcoin::{
     absolute, block, Amount, Block, BlockHash, ScriptBuf, Sequence, Transaction, TxIn, TxMerkleNode,
     TxOut, Txid, Witness,
@@ -29,7 +30,9 @@ impl BlockTemplate {
         let height = value["height"].as_u64().ok_or("missing height")?;
         let version = value["version"].as_i64().ok_or("missing version")? as i32;
         let previous_blockhash: BlockHash = value["previousblockhash"]
-            .as_str().ok_or("missing previousblockhash")?.parse()?;
+            .as_str()
+            .ok_or("missing previousblockhash")?
+            .parse()?;
         let bits_hex = value["bits"].as_str().ok_or("missing bits")?;
         let bits = CompactTarget::from_consensus(u32::from_str_radix(bits_hex, 16)?);
         let target = Target::from_compact(bits);
