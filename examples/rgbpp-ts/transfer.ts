@@ -1,120 +1,141 @@
-import 'dotenv/config';
-import { Collector } from 'rgbpp/ckb';
-import { buildRgbppTransferTx } from 'rgbpp';
-import { AddressType, BtcAssetsApi, DataSource, NetworkType, bitcoin, ECPair, transactionToHex } from 'rgbpp/btc';
-import { remove0x } from 'rgbpp/btc';
+import "dotenv/config";
 
-const required = (name: string): string => {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing environment variable: ${name}`);
+import { ccc } from "@ckb-ccc/shell";
+import {
+  AddressType,
+  CkbRgbppUnlockSinger,
+  PrivateKeyRgbppBtcWallet,
+  RgbppUdtClient,
+  buildNetworkConfig,
+  PredefinedNetwork,
+} from "@ckb-ccc/rgbpp";
+
+function required(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`${name} is required`);
   return value;
-};
-
-const isMainnet = process.env.IS_MAINNET === 'true';
-const networkType = isMainnet ? NetworkType.MAINNET : NetworkType.TESTNET;
-const testnetType = required('BTC_TESTNET_TYPE');
-
-const btcPrivateKey = Buffer.from(remove0x(required('BTC_PRIVATE_KEY')), 'hex');
-const addressType = process.env.BTC_ADDRESS_TYPE === 'P2TR' ? AddressType.P2TR : AddressType.P2WPKH;
-const btcNetwork = networkType === NetworkType.MAINNET ? bitcoin.networks.bitcoin : bitcoin.networks.testnet;
-const keyPair = ECPair.fromPrivateKey(btcPrivateKey, { network: btcNetwork });
-
-const payment = addressType === AddressType.P2TR
-  ? bitcoin.payments.p2tr({ internalPubkey: keyPair.publicKey.slice(1, 33), network: btcNetwork })
-  : bitcoin.payments.p2wpkh({ pubkey: keyPair.publicKey, network: btcNetwork });
-
-const fromAddress = payment.address;
-if (!fromAddress) throw new Error('Could not derive BTC sender address');
-
-const collector = new Collector({
-  ckbNodeUrl: required('CKB_NODE_URL'),
-  ckbIndexerUrl: required('CKB_INDEXER_URL'),
-});
-
-const service = BtcAssetsApi.fromToken(
-  required('BTC_SERVICE_URL'),
-  required('BTC_SERVICE_TOKEN'),
-  required('BTC_SERVICE_ORIGIN'),
-);
-const dataSource = new DataSource(service, networkType);
-
-const rgbppLockArgsList = required('RGBPP_LOCK_ARGS')
-  .split(',')
-  .map((value) => value.trim())
-  .filter(Boolean);
-
-const xudtTypeArgs = required('XUDT_TYPE_ARGS');
-const toBtcAddress = required('TO_BTC_ADDRESS');
-const transferAmount = BigInt(required('TRANSFER_AMOUNT'));
-
-const result = await buildRgbppTransferTx({
-  ckb: {
-    collector,
-    xudtTypeArgs,
-    rgbppLockArgsList,
-    transferAmount,
-  },
-  btc: {
-    fromAddress,
-    toAddress: toBtcAddress,
-    fromPubkey: addressType === AddressType.P2TR ? keyPair.publicKey.toString('hex') : undefined,
-    dataSource,
-    testnetType,
-  },
-  isMainnet,
-});
-
-console.log(JSON.stringify({
-  fromAddress,
-  toBtcAddress,
-  btcPsbtHex: result.btcPsbtHex,
-  commitment: result.ckbVirtualTxResult.commitment,
-}, null, 2));
-
-// Deliberately stop before signing/broadcasting.
-// The PSBT must be independently reviewed before a private key is used.
-
-
-const shouldBroadcast = process.env.BROADCAST === 'true';
-if (shouldBroadcast) {
-  if (addressType !== AddressType.P2WPKH) {
-    throw new Error('This example only enables the guarded broadcast path for P2WPKH. Use the SDK P2TR signer flow separately.');
-  }
-
-  const psbt = bitcoin.Psbt.fromHex(result.btcPsbtHex);
-  for (let i = 0; i < psbt.data.inputs.length; i += 1) {
-    psbt.signInput(i, keyPair);
-  }
-  psbt.finalizeAllInputs();
-  const tx = psbt.extractTransaction(true);
-  const txHex = tx.toHex();
-  const { txid } = await service.sendBtcTransaction(txHex);
-  console.log('btc_txid=' + txid);
-
-  await service.sendRgbppCkbTransaction({
-    btc_txid: txid,
-    ckb_virtual_result: result.ckbVirtualTxResult,
-  });
-  console.log('RGB++ CKB transaction submitted to the queue.');
-
-  const interval = setInterval(async () => {
-    try {
-      const state = await service.getRgbppTransactionState(txid);
-      console.log('rgbpp_state=' + state.state);
-      if (state.state === 'completed' || state.state === 'failed') {
-        clearInterval(interval);
-        if (state.state === 'completed') {
-          const hash = await service.getRgbppTransactionHash(txid);
-          console.log('ckb_txhash=' + hash.txhash);
-        } else {
-          console.error('rgbpp_failed=' + state.failedReason);
-          process.exitCode = 1;
-        }
-      }
-    } catch (error) {
-      clearInterval(interval);
-      console.error(error);
-      process.exitCode = 1;
-    }
-  }, 30_000);
 }
+
+const networkName = (process.env.UTXO_BASED_CHAIN_NAME ??
+  "BitcoinTestnet3") as PredefinedNetwork;
+if (
+  networkName !== PredefinedNetwork.BitcoinTestnet3 &&
+  networkName !== PredefinedNetwork.BitcoinSignet
+) {
+  throw new Error("This example only permits Bitcoin Testnet3 or Signet");
+}
+
+const ckbPrivateKey = required("CKB_SECP256K1_PRIVATE_KEY");
+const btcPrivateKey = required("UTXO_BASED_CHAIN_PRIVATE_KEY");
+const btcAddressType = required("UTXO_BASED_CHAIN_ADDRESS_TYPE") as AddressType;
+const btcApiUrl = required("BTC_ASSETS_API_URL");
+const btcApiToken = required("BTC_ASSETS_API_TOKEN");
+const btcApiOrigin = required("BTC_ASSETS_API_ORIGIN");
+const receiverAddress = required("RGBPP_RECEIVER_BTC_ADDRESS");
+const udtCodeHash = required("UDT_CODE_HASH");
+const udtCellDepTxHash = required("UDT_CELL_DEP_TX_HASH");
+const udtCellDepIndex = Number(process.env.UDT_CELL_DEP_INDEX ?? "0");
+const transferAmount = BigInt(process.env.RGBPP_TRANSFER_AMOUNT ?? "1");
+const feeRate = Number(process.env.RGBPP_FEE_RATE ?? "28");
+const broadcast = process.env.RGBPP_BROADCAST === "true";
+
+if (!Object.values(AddressType).includes(btcAddressType)) {
+  throw new Error(`Unsupported BTC address type: ${btcAddressType}`);
+}
+if (!Number.isInteger(udtCellDepIndex) || udtCellDepIndex < 0) {
+  throw new Error("UDT_CELL_DEP_INDEX must be a non-negative integer");
+}
+if (transferAmount <= 0n) throw new Error("RGBPP_TRANSFER_AMOUNT must be > 0");
+if (!Number.isFinite(feeRate) || feeRate <= 0) {
+  throw new Error("RGBPP_FEE_RATE must be > 0");
+}
+
+const networkConfig = buildNetworkConfig(networkName);
+const ckbClient = new ccc.ClientPublicTestnet();
+const ckbSigner = new ccc.SignerCkbPrivateKey(ckbClient, ckbPrivateKey);
+const rgbppUdtClient = new RgbppUdtClient(networkConfig, ckbClient);
+
+const btcWallet = new PrivateKeyRgbppBtcWallet(
+  btcPrivateKey,
+  btcAddressType,
+  networkConfig,
+  {
+    url: btcApiUrl,
+    token: btcApiToken,
+    origin: btcApiOrigin,
+  },
+);
+
+const btcAddress = await btcWallet.getAddress();
+const ckbRgbppUnlockSigner = new CkbRgbppUnlockSinger(
+  ckbClient,
+  btcAddress,
+  btcWallet,
+  btcWallet,
+  rgbppUdtClient.getRgbppScriptInfos(),
+);
+
+const udt = new ccc.udt.Udt(
+  {
+    txHash: udtCellDepTxHash,
+    index: udtCellDepIndex,
+  },
+  await ccc.Script.from({
+    codeHash: udtCodeHash,
+    hashType: process.env.UDT_HASH_TYPE ?? "type",
+    args: required("UDT_TYPE_ARGS"),
+  }),
+);
+
+const pseudoLock = rgbppUdtClient.buildPseudoRgbppLockScript();
+
+let { res: ckbPartialTx } = await udt.transfer(ckbSigner, [
+  {
+    to: pseudoLock,
+    amount: transferAmount,
+  },
+]);
+
+ckbPartialTx = await udt.completeChangeToLock(
+  ckbPartialTx,
+  ckbRgbppUnlockSigner,
+  pseudoLock,
+);
+
+const { psbt, indexedCkbPartialTx } = await btcWallet.buildPsbt({
+  ckbPartialTx,
+  ckbClient,
+  rgbppUdtClient,
+  btcChangeAddress: btcAddress,
+  receiverBtcAddresses: [receiverAddress],
+  feeRate,
+});
+
+console.log("network=", networkName);
+console.log("sender_btc_address=", btcAddress);
+console.log("receiver_btc_address=", receiverAddress);
+console.log("transfer_amount=", transferAmount.toString());
+console.log("psbt_ready=true");
+
+if (!broadcast) {
+  console.log("broadcast=false; no transaction was signed or broadcast");
+  process.exit(0);
+}
+
+const btcTxId = await btcWallet.signAndBroadcast(psbt);
+console.log("btc_tx_id=", btcTxId);
+
+const ckbPartialTxInjected = await rgbppUdtClient.injectTxIdToRgbppCkbTx(
+  indexedCkbPartialTx,
+  btcTxId,
+);
+
+const rgbppSignedCkbTx =
+  await ckbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
+
+await rgbppSignedCkbTx.completeFeeBy(ckbSigner);
+const ckbFinalTx = await ckbSigner.signTransaction(rgbppSignedCkbTx);
+const ckbTxId = await ckbSigner.client.sendTransaction(ckbFinalTx);
+await ckbRgbppUnlockSigner.client.waitTransaction(ckbTxId);
+
+console.log("ckb_tx_id=", ckbTxId);
