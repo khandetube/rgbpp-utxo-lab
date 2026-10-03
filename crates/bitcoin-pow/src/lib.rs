@@ -1,5 +1,4 @@
 use bitcoin::blockdata::block::Header;
-use bitcoin::hashes::Hash;
 use bitcoin::pow::Target;
 use sha2::{Digest, Sha256};
 use std::time::{Duration, Instant};
