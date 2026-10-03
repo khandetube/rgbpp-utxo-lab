@@ -46,6 +46,7 @@ jobs:
           export BITCOIN_TESTNET_RPC_USER="$(cut -d: -f1 "$cookie")"
           export BITCOIN_TESTNET_RPC_PASSWORD="$(cut -d: -f2- "$cookie")"
           address="$(bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" -rpcwallet=lab getnewaddress)"
+          echo "MINER_REWARD_ADDRESS=$address" >> "$GITHUB_ENV"
           script="$(bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" -rpcwallet=lab getaddressinfo "$address" | python3 -c 'import json,sys; print(json.load(sys.stdin)["scriptPubKey"])')"
           export BITCOIN_MINER_SCRIPT_PUBKEY="$script"
           cargo run -p bitcoin-pow --bin testnet3_miner --release
@@ -54,12 +55,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          address="$(bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" -rpcwallet=lab getnewaddress)"
-          mapfile -t blocks < <(bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" generatetoaddress 101 "$address")
-          test "${#blocks[@]}" -eq 101
+          address="$MINER_REWARD_ADDRESS"
+          mapfile -t blocks < <(bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" generatetoaddress 100 "$address")
+          test "${#blocks[@]}" -eq 100
           balance="$(bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" -rpcwallet=lab getbalance)"
           confirmations="$(bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" -rpcwallet=lab listreceivedbyaddress 1 true "$address" | python3 -c 'import json,sys; x=json.load(sys.stdin); print(x[0]["confirmations"] if x else 0)')"
-          echo "regtest_mined_blocks=101"
+          echo "regtest_mined_blocks=101 (1 miner-submitted + 100 maturity blocks)"
           echo "regtest_reward_address=$address"
           echo "regtest_wallet_balance=$balance"
           echo "regtest_reward_confirmations=$confirmations"
