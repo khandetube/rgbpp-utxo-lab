@@ -63,7 +63,7 @@ pub fn build_transfer(
 ) -> Result<Selection, SelectionError> {
     let target = amount
         .checked_add(fee)
-        .ok_or(SelectionError::InsufficientFunds)?;
+        .ok_or(SelectionError::InvalidTarget)?;
     select_largest_first(utxos, target)
 }
 
