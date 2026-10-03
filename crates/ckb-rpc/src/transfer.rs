@@ -16,7 +16,7 @@ use ckb_sdk::{
 };
 use ckb_types::{
     bytes::Bytes,
-    core::{BlockView, ScriptHashType, TransactionView},
+    core::{BlockView, ScriptHashType},
     packed::{CellOutput, Script, WitnessArgs},
     prelude::*,
     H256,
@@ -99,7 +99,7 @@ pub fn build_and_optionally_send(config: TransferConfig) -> Result<H256> {
         println!("broadcast_hash={:#x}", sent);
         Ok(sent)
     } else {
-        Ok(tx_hash)
+        Ok(tx_hash.into())
     }
 }
 
@@ -112,10 +112,12 @@ pub fn config_from_env() -> Result<TransferConfig> {
     let receiver = Address::from_str(
         &env::var("CKB_RECEIVER_ADDRESS")
             .context("CKB_RECEIVER_ADDRESS is required")?,
-    )?;
+    )
+    .map_err(|error| anyhow!(error))?;
     let capacity = env::var("CKB_TRANSFER_AMOUNT")
         .unwrap_or_else(|_| "61".to_string())
-        .parse::<HumanCapacity>()?;
+.parse::<HumanCapacity>()
+        .map_err(|error| anyhow!(error))?;
     let fee_rate = env::var("CKB_FEE_RATE")
         .unwrap_or_else(|_| "1000".to_string())
         .parse::<u64>()?;
