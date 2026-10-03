@@ -36,17 +36,21 @@ jobs:
           BITCOIN_TESTNET_RPC_URL: http://127.0.0.1:18443
           BITCOIN_TESTNET_RPC_USER: ""
           BITCOIN_TESTNET_RPC_PASSWORD: ""
-          BITCOIN_TESTNET_SUBMIT: "NO"
-          BITCOIN_TESTNET_CONFIRM: "NO"
+          BITCOIN_TESTNET_SUBMIT: "YES"
+          BITCOIN_TESTNET_CONFIRM: "YES"
+          BITCOIN_MINER_SCRIPT_PUBKEY: ""
           MAX_ATTEMPTS: "100000"
         run: |
           set -euo pipefail
           cookie="$RUNNER_TEMP/bitcoin/regtest/.cookie"
           export BITCOIN_TESTNET_RPC_USER="$(cut -d: -f1 "$cookie")"
           export BITCOIN_TESTNET_RPC_PASSWORD="$(cut -d: -f2- "$cookie")"
+          address="$(bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" -rpcwallet=lab getnewaddress)"
+          script="$(bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" -rpcwallet=lab getaddressinfo "$address" | python3 -c 'import json,sys; print(json.load(sys.stdin)["scriptPubKey"])')"
+          export BITCOIN_MINER_SCRIPT_PUBKEY="$script"
           cargo run -p bitcoin-pow --bin testnet3_miner --release
 
-      - name: Mine controlled regtest rewards and verify wallet balance
+      - name: Mature the miner reward and verify wallet balance and verify wallet balance
         shell: bash
         run: |
           set -euo pipefail
