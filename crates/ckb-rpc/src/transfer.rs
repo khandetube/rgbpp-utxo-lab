@@ -32,6 +32,7 @@ pub struct TransferConfig {
 }
 
 pub fn build_and_optionally_send(config: TransferConfig) -> Result<H256> {
+    validate_broadcast_network(&config)?;
     let sender_key = secp256k1::SecretKey::from_slice(config.sender_key.as_bytes())
         .context("sender key must be a 32-byte hex H256")?;
 
@@ -103,6 +104,22 @@ pub fn build_and_optionally_send(config: TransferConfig) -> Result<H256> {
     }
 }
 
+fn validate_broadcast_network(config: &TransferConfig) -> Result<()> {
+    if !config.broadcast {
+        return Ok(());
+    }
+
+    const OFFICIAL_TESTNET_RPC: &str = "https://testnet.ckb.dev";
+    if config.rpc_url.trim_end_matches('/') != OFFICIAL_TESTNET_RPC {
+        return Err(anyhow!(
+            "broadcast is restricted to the official CKB Testnet RPC: {}",
+            OFFICIAL_TESTNET_RPC
+        ));
+    }
+
+    Ok(())
+}
+
 pub fn config_from_env() -> Result<TransferConfig> {
     let rpc_url = env::var("CKB_RPC_URL").unwrap_or_else(|_| "https://testnet.ckb.dev".to_string());
     let sender_key = H256::from_str(
@@ -142,4 +159,42 @@ pub fn run_env_transfer() -> Result<()> {
 pub fn ensure_send_ready() -> Result<(), Box<dyn Error>> {
     let _ = config_from_env()?;
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::{validate_broadcast_network, TransferConfig};
+    use ckb_sdk::{Address, HumanCapacity};
+    use ckb_types::H256;
+    use std::str::FromStr;
+
+    fn config(rpc_url: &str, broadcast: bool) -> TransferConfig {
+        TransferConfig {
+            rpc_url: rpc_url.to_owned(),
+            sender_key: H256::from_str(
+                "0x0000000000000000000000000000000000000000000000000000000000000001",
+            )
+            .unwrap(),
+            receiver: Address::from_str(
+                "ckt1qyqgqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",
+            )
+            .unwrap(),
+            capacity: "61".parse::<HumanCapacity>().unwrap(),
+            fee_rate: 1000,
+            broadcast,
+        }
+    }
+
+    #[test]
+    fn build_only_allows_any_configured_rpc() {
+        assert!(validate_broadcast_network(&config("http://127.0.0.1:8114", false)).is_ok());
+    }
+
+    #[test]
+    fn broadcast_requires_official_testnet_rpc() {
+        assert!(validate_broadcast_network(&config("https://testnet.ckb.dev", true)).is_ok());
+        assert!(validate_broadcast_network(&config("https://mainnet.ckb.dev", true)).is_err());
+        assert!(validate_broadcast_network(&config("http://127.0.0.1:8114", true)).is_err());
+    }
 }
