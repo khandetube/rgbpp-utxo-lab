@@ -30,7 +30,6 @@ jobs:
           done
           bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" createwallet "lab" >/dev/null
           address="$(bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" -rpcwallet=lab getnewaddress)"
-          bitcoin-cli -regtest -datadir="$RUNNER_TEMP/bitcoin" generatetoaddress 101 "$address" >/dev/null
       - name: Validate getblocktemplate and exercise miner build path
         env:
           BITCOIN_TESTNET_RPC_URL: http://127.0.0.1:18443
