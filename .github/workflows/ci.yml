@@ -35,13 +35,20 @@ jobs:
           cookie="$datadir/regtest/.cookie"
           export BITCOIN_TESTNET_RPC_USER="$(cut -d: -f1 "$cookie")"
           export BITCOIN_TESTNET_RPC_PASSWORD="$(cut -d: -f2- "$cookie")"
-          export BITCOIN_MINER_SCRIPT_PUBKEY="$(bitcoin-cli -regtest -datadir="$datadir" -rpcwallet=lab getaddressinfo "$(bitcoin-cli -regtest -datadir="$datadir" -rpcwallet=lab getnewaddress)" | python3 -c 'import json,sys; print(json.load(sys.stdin)["scriptPubKey"])')"
+          payout_address="$(bitcoin-cli -regtest -datadir="$datadir" -rpcwallet=lab getnewaddress)"
+          export BITCOIN_MINER_SCRIPT_PUBKEY="$(bitcoin-cli -regtest -datadir="$datadir" -rpcwallet=lab getaddressinfo "$payout_address" | python3 -c 'import json,sys; print(json.load(sys.stdin)["scriptPubKey"])')"
           export BITCOIN_TESTNET_RPC_URL="http://127.0.0.1:18443"
           export BITCOIN_TESTNET_SUBMIT="YES"
           export BITCOIN_TESTNET_CONFIRM="YES"
           export MAX_ATTEMPTS="100000"
           cargo run -p bitcoin-pow --bin testnet3_miner --release
-          address="$(bitcoin-cli -regtest -datadir="$datadir" -rpcwallet=lab getnewaddress)"
-          bitcoin-cli -regtest -datadir="$datadir" generatetoaddress 100 "$address" >/dev/null
+          bitcoin-cli -regtest -datadir="$datadir" generatetoaddress 100 "$payout_address" >/dev/null
+          balance="$(bitcoin-cli -regtest -datadir="$datadir" -rpcwallet=lab getbalance)"
+          python3 - "$balance" <<'PY'
+import decimal, sys
+balance = decimal.Decimal(sys.argv[1])
+assert balance > 0, f"expected positive regtest balance, got {balance}"
+print(f"verified_regtest_wallet_balance={balance}")
+PY
       - name: Verify live Bitcoin Testnet3 block header
         run: cargo run -p bitcoin-pow --bin bitcoin-pow --release
