@@ -1,3 +1,4 @@
+pub mod route_orchestrator;
 pub mod stratum;
 pub mod template;
 
