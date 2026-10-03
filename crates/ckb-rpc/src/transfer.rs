@@ -165,7 +165,6 @@ pub fn ensure_send_ready() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::validate_broadcast_rpc_url;
