@@ -8,8 +8,8 @@ fn main() {
     let hash_type = args.next().unwrap_or_else(|| "type".to_owned());
     let lock_args = args.next().expect("missing lock_args");
 
-    let rpc_url = std::env::var("CKB_RPC_URL")
-        .unwrap_or_else(|_| "https://testnet.ckb.dev".to_owned());
+    let rpc_url =
+        std::env::var("CKB_RPC_URL").unwrap_or_else(|_| "https://testnet.ckb.dev".to_owned());
 
     let lock_script = json!({
         "code_hash": code_hash,

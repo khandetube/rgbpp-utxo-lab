@@ -114,10 +114,7 @@ fn parse_cell_page(response: Value) -> Result<CellPage, RpcAdapterError> {
         .filter(|cursor| !cursor.is_empty())
         .map(str::to_owned);
 
-    Ok(CellPage {
-        cells,
-        next_cursor,
-    })
+    Ok(CellPage { cells, next_cursor })
 }
 
 fn parse_hex_u32(value: &str) -> Result<u32, RpcAdapterError> {

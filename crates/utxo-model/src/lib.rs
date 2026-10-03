@@ -79,11 +79,8 @@ mod tests {
 
     #[test]
     fn selects_deterministically_and_returns_change() {
-        let s = select_largest_first(
-            vec![u("a", 0, 40), u("b", 0, 100), u("c", 0, 60)],
-            130,
-        )
-        .unwrap();
+        let s =
+            select_largest_first(vec![u("a", 0, 40), u("b", 0, 100), u("c", 0, 60)], 130).unwrap();
         assert_eq!(s.total, 160);
         assert_eq!(s.change, 30);
         assert_eq!(s.inputs.len(), 2);

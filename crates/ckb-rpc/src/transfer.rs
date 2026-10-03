@@ -104,8 +104,7 @@ pub fn build_and_optionally_send(config: TransferConfig) -> Result<H256> {
 }
 
 pub fn config_from_env() -> Result<TransferConfig> {
-    let rpc_url =
-        env::var("CKB_RPC_URL").unwrap_or_else(|_| "https://testnet.ckb.dev".to_string());
+    let rpc_url = env::var("CKB_RPC_URL").unwrap_or_else(|_| "https://testnet.ckb.dev".to_string());
     let sender_key = H256::from_str(
         &env::var("CKB_SENDER_PRIVATE_KEY").context("CKB_SENDER_PRIVATE_KEY is required")?,
     )?;

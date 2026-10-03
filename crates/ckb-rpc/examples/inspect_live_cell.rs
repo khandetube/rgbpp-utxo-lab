@@ -19,8 +19,8 @@ fn main() {
             std::process::exit(2);
         });
 
-    let rpc_url = std::env::var("CKB_RPC_URL")
-        .unwrap_or_else(|_| "https://testnet.ckb.dev".to_string());
+    let rpc_url =
+        std::env::var("CKB_RPC_URL").unwrap_or_else(|_| "https://testnet.ckb.dev".to_string());
 
     match get_live_cell(&rpc_url, &tx_hash, output_index, true) {
         Ok(response) => {

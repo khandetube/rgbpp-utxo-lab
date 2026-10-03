@@ -41,20 +41,14 @@ pub enum ValidationError {
 
 impl CellTransaction {
     pub fn validate_capacity(&self) -> Result<(), ValidationError> {
-        let inputs = self
-            .inputs
-            .iter()
-            .try_fold(0u64, |sum, cell| {
-                sum.checked_add(cell.capacity)
-                    .ok_or(ValidationError::CapacityOverflow)
-            })?;
-        let outputs = self
-            .outputs
-            .iter()
-            .try_fold(0u64, |sum, cell| {
-                sum.checked_add(cell.capacity)
-                    .ok_or(ValidationError::CapacityOverflow)
-            })?;
+        let inputs = self.inputs.iter().try_fold(0u64, |sum, cell| {
+            sum.checked_add(cell.capacity)
+                .ok_or(ValidationError::CapacityOverflow)
+        })?;
+        let outputs = self.outputs.iter().try_fold(0u64, |sum, cell| {
+            sum.checked_add(cell.capacity)
+                .ok_or(ValidationError::CapacityOverflow)
+        })?;
 
         if inputs == outputs {
             Ok(())
