@@ -16,18 +16,28 @@ pub enum CellSelectionError {
     CapacityOverflow,
 }
 
-pub fn select_cells_for_transfer(cells: Vec<LiveCell>, amount: u64, fee: u64) -> Result<CellSelection, CellSelectionError> {
-    let target_capacity = amount.checked_add(fee).ok_or(CellSelectionError::InvalidTarget)?;
+pub fn select_cells_for_transfer(
+    cells: Vec<LiveCell>,
+    amount: u64,
+    fee: u64,
+) -> Result<CellSelection, CellSelectionError> {
+    let target_capacity = amount
+        .checked_add(fee)
+        .ok_or(CellSelectionError::InvalidTarget)?;
     let mut ordered = cells;
-    ordered.sort_by(|a, b| b.capacity.cmp(&a.capacity)
-        .then_with(|| a.out_point.tx_hash.cmp(&b.out_point.tx_hash))
-        .then_with(|| a.out_point.index.cmp(&b.out_point.index)));
+    ordered.sort_by(|a, b| {
+        b.capacity
+            .cmp(&a.capacity)
+            .then_with(|| a.out_point.tx_hash.cmp(&b.out_point.tx_hash))
+            .then_with(|| a.out_point.index.cmp(&b.out_point.index))
+    });
 
     let mut inputs = Vec::new();
     let mut total_capacity = 0u64;
 
     for cell in ordered {
-        total_capacity = total_capacity.checked_add(cell.capacity)
+        total_capacity = total_capacity
+            .checked_add(cell.capacity)
             .ok_or(CellSelectionError::CapacityOverflow)?;
         inputs.push(cell);
         if total_capacity >= target_capacity {
@@ -46,8 +56,14 @@ pub fn select_cells_for_transfer(cells: Vec<LiveCell>, amount: u64, fee: u64) ->
     })
 }
 
-pub fn build_transfer(utxos: Vec<Utxo>, amount: u64, fee: u64) -> Result<Selection, SelectionError> {
-    let target = amount.checked_add(fee).ok_or(SelectionError::InsufficientFunds)?;
+pub fn build_transfer(
+    utxos: Vec<Utxo>,
+    amount: u64,
+    fee: u64,
+) -> Result<Selection, SelectionError> {
+    let target = amount
+        .checked_add(fee)
+        .ok_or(SelectionError::InsufficientFunds)?;
     select_largest_first(utxos, target)
 }
 
