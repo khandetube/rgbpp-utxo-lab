@@ -40,8 +40,11 @@ impl BlockTemplate {
         if target_json.len() != 64 {
             return Err("target must be 32 bytes of hex".into());
         }
-        let parsed_target = bitcoin::uint::Uint256::from_str_radix(target_json, 16).map_err(|_| "invalid target")?;
-        if parsed_target != target.to_uint256() { return Err("bits/target mismatch".into()); }
+        let parsed_target = bitcoin::uint::Uint256::from_str_radix(target_json, 16)
+            .map_err(|_| "invalid target")?;
+        if parsed_target != target.to_uint256() {
+            return Err("bits/target mismatch".into());
+        }
         let curtime = value["curtime"].as_u64().ok_or("missing curtime")? as u32;
         let mintime = value["mintime"].as_u64().ok_or("missing mintime")? as u32;
         let coinbase_value = value["coinbasevalue"].as_u64().unwrap_or(0);
