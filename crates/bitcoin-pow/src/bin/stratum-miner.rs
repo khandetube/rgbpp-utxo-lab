@@ -48,8 +48,9 @@ fn run_session(endpoint:&str, username:&str, password:&str, threads:usize) -> Re
     let configure_id=10u64;
     let negotiated_mask=configure_version_rolling(&mut stream,configure_id,version_mask,version_min_bits).unwrap_or(None);
     println!("BIP310 version rolling mask={}",negotiated_mask.map(|m| format!("{m:08x}")).unwrap_or_else(|| "disabled".into()));
-    let (session,reader)=subscribe_and_authorize(&mut stream,username,password)?;
-    println!("authorized; extranonce1={} extranonce2_size={}",hex::encode(&session.extranonce1),session.extranonce2_size);
+    let (mut session,reader)=subscribe_and_authorize(&mut stream,username,password)?;
+    session.version_mask=negotiated_mask.unwrap_or(0);
+    println!("authorized; extranonce1={} extranonce2_size={} version_mask={:08x}",hex::encode(&session.extranonce1),session.extranonce2_size,session.version_mask);
 
     let (tx,rx)=mpsc::channel::<Result<Value,String>>();
     thread::spawn(move || {
