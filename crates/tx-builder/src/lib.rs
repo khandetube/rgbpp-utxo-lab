@@ -82,9 +82,15 @@ mod tests {
 
     fn cell(tx_hash: &str, index: u32, capacity: u64) -> LiveCell {
         LiveCell {
-            out_point: CellOutPoint { tx_hash: tx_hash.into(), index },
+            out_point: CellOutPoint {
+                tx_hash: tx_hash.into(),
+                index,
+            },
             capacity,
-            lock: Script { code_hash: [0; 32], args: vec![] },
+            lock: Script {
+                code_hash: [0; 32],
+                args: vec![],
+            },
             type_script: None,
             data: vec![],
         }
@@ -93,10 +99,15 @@ mod tests {
     #[test]
     fn selects_deterministically_and_returns_change() {
         let selected = select_cells_for_transfer(
-            vec![cell("0xbb", 0, 60), cell("0xaa", 0, 60), cell("0xcc", 0, 10)],
+            vec![
+                cell("0xbb", 0, 60),
+                cell("0xaa", 0, 60),
+                cell("0xcc", 0, 10),
+            ],
             100,
             5,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(selected.total_capacity, 120);
         assert_eq!(selected.target_capacity, 105);
