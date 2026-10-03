@@ -18,7 +18,7 @@ It checks, without private keys and without broadcasting anything:
 - the deployed xUDT cell dependency
 - RGB++ script information resolution
 
-The public preflight has a 45-second timeout per network operation and the workflow itself has a 5-minute timeout.
+The public preflight has a 45-second timeout per network operation and the workflow itself has a 5-minute timeout. The CLI now exits explicitly after a successful preflight so that open SDK/network handles cannot keep CI alive.
 
 ## 2. Private-key preflight
 
@@ -100,3 +100,18 @@ Before any broadcast, verify the network and protocol details against the curren
 - CKB Pudge Testnet faucet: https://faucet.nervos.org/
 
 These references are operational inputs, not substitutes for checking the actual transaction, asset and receiver state at execution time.
+
+
+### Verified public-preflight evidence (2026-10-03)
+
+A real GitHub Actions run completed successfully against the public RGB++/CKB Testnet3 infrastructure:
+
+- Workflow run: `37098272175`
+- Result: `success`
+- Network: `BitcoinTestnet3`
+- CKB testnet tip observed: `22617200`
+- xUDT cell dependencies: `1`
+- RGB++ script infos resolved: `RgbppLock`, `BtcTimeLock`, `UniqueType`
+- No private key was required and no transaction was broadcast.
+
+This is connectivity/protocol-readiness evidence only; it is **not** evidence of a completed RGB++ asset transfer. A real transfer still requires the external testnet funding, asset/type-args, receiver and credential prerequisites described below.
