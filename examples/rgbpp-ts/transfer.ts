@@ -17,6 +17,27 @@ function required(name: string): string {
   return value;
 }
 
+async function withTimeout<T>(
+  label: string,
+  operation: Promise<T>,
+  ms = 60_000,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(label + " timed out after " + ms + "ms")),
+          ms,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 const networkName = (process.env.UTXO_BASED_CHAIN_NAME ??
   "BitcoinTestnet3") as PredefinedNetwork;
 if (networkName !== PredefinedNetwork.BitcoinTestnet3) {
@@ -71,15 +92,22 @@ const btcWallet = new PrivateKeyRgbppBtcWallet(
   },
 );
 
-const btcAddress = await btcWallet.getAddress();
+const btcAddress = await withTimeout("BTC address derivation", btcWallet.getAddress());
+const rgbppScriptInfos = await withTimeout(
+  "RGB++ script info resolution",
+  rgbppUdtClient.getRgbppScriptInfos(),
+);
 const ckbRgbppUnlockSigner = new CkbRgbppUnlockSigner({
   ckbClient,
   rgbppBtcAddress: btcAddress,
   btcDataSource: btcWallet,
-  scriptInfos: await rgbppUdtClient.getRgbppScriptInfos(),
+  scriptInfos: rgbppScriptInfos,
 });
 
-const xuDtScriptInfo = await ckbClient.getKnownScript(ccc.KnownScript.XUdt);
+const xuDtScriptInfo = await withTimeout(
+  "CKB KnownScript.XUdt resolution",
+  ckbClient.getKnownScript(ccc.KnownScript.XUdt),
+);
 const udtScript = await ccc.Script.fromKnownScript(
   ckbClient,
   ccc.KnownScript.XUdt,
@@ -92,27 +120,36 @@ const udt = new ccc.udt.Udt(
 
 const pseudoLock = await rgbppUdtClient.buildPseudoRgbppLockScript();
 
-let { res: ckbPartialTx } = await udt.transfer(ckbSigner, [
-  {
-    to: pseudoLock,
-    amount: transferAmount,
-  },
-]);
-
-ckbPartialTx = await udt.completeChangeToLock(
-  ckbPartialTx,
-  ckbRgbppUnlockSigner,
-  pseudoLock,
+let { res: ckbPartialTx } = await withTimeout(
+  "xUDT CKB partial transaction construction",
+  udt.transfer(ckbSigner, [
+    {
+      to: pseudoLock,
+      amount: transferAmount,
+    },
+  ]),
 );
 
-const { psbt, indexedCkbPartialTx } = await btcWallet.buildPsbt({
+ckbPartialTx = await withTimeout(
+  "xUDT CKB change completion",
+  udt.completeChangeToLock(
+    ckbPartialTx,
+    ckbRgbppUnlockSigner,
+    pseudoLock,
+  ),
+);
+
+const { psbt, indexedCkbPartialTx } = await withTimeout(
+  "Bitcoin PSBT construction",
+  btcWallet.buildPsbt({
   ckbPartialTx,
   ckbClient,
   rgbppUdtClient,
   btcChangeAddress: btcAddress,
   receiverBtcAddresses: [receiverAddress],
   feeRate,
-});
+  }),
+);
 
 console.log("network=", networkName);
 console.log("sender_btc_address=", btcAddress);
@@ -125,20 +162,40 @@ if (!broadcast) {
   process.exit(0);
 }
 
-const btcTxId = await btcWallet.signAndBroadcast(psbt);
+const btcTxId = await withTimeout(
+  "Bitcoin Testnet3 sign-and-broadcast",
+  btcWallet.signAndBroadcast(psbt),
+  120_000,
+);
 console.log("btc_tx_id=", btcTxId);
 
-const ckbPartialTxInjected = await rgbppUdtClient.injectTxIdToRgbppCkbTx(
-  indexedCkbPartialTx,
-  btcTxId,
+const ckbPartialTxInjected = await withTimeout(
+  "RGB++ BTC TXID injection",
+  rgbppUdtClient.injectTxIdToRgbppCkbTx(indexedCkbPartialTx, btcTxId),
 );
 
-const rgbppSignedCkbTx =
-  await ckbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
+const rgbppSignedCkbTx = await withTimeout(
+  "RGB++ CKB transaction signing",
+  ckbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected),
+);
 
-await rgbppSignedCkbTx.completeFeeBy(ckbSigner);
-const ckbFinalTx = await ckbSigner.signTransaction(rgbppSignedCkbTx);
-const ckbTxId = await ckbSigner.client.sendTransaction(ckbFinalTx);
-await ckbRgbppUnlockSigner.client.waitTransaction(ckbTxId);
+await withTimeout(
+  "CKB fee completion",
+  rgbppSignedCkbTx.completeFeeBy(ckbSigner),
+);
+
+const ckbFinalTx = await withTimeout(
+  "Final CKB transaction signing",
+  ckbSigner.signTransaction(rgbppSignedCkbTx),
+);
+const ckbTxId = await withTimeout(
+  "CKB Testnet broadcast",
+  ckbSigner.client.sendTransaction(ckbFinalTx),
+);
+await withTimeout(
+  "CKB transaction confirmation wait",
+  ckbRgbppUnlockSigner.client.waitTransaction(ckbTxId),
+  180_000,
+);
 
 console.log("ckb_tx_id=", ckbTxId);
