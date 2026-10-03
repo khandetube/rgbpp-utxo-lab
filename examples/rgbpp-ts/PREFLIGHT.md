@@ -35,3 +35,14 @@ The example now resolves the deployed CKB `KnownScript.XUdt` and its cell depend
 The RGB++ official UDT documentation describes the transfer flow as: build the CKB partial transaction, build/sign the BTC PSBT, inject the BTC transaction ID, construct the RGB++ witness, then submit the final CKB transaction.
 
 For Meepo Testnet, the official RGB++ resources publish the deployed RGB++ script parameters and the Testnet3 BTC-assets API endpoints.
+
+
+## Automated preflight
+
+From this directory:
+
+    pnpm install
+    pnpm run typecheck
+    pnpm run preflight
+
+The preflight connects to CKB Testnet, reads the current tip, resolves the deployed xUDT known-script dependency, derives the controlled Bitcoin Testnet3 sender address, and validates required non-secret configuration. It does not sign or broadcast either transaction.
