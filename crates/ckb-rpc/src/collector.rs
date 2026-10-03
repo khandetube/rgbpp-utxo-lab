@@ -82,7 +82,9 @@ fn parse_cell_page(response: Value) -> Result<CellPage, RpcAdapterError> {
             out_point
                 .get("index")
                 .and_then(Value::as_str)
-                .ok_or_else(|| RpcAdapterError::InvalidResponse("missing output index".to_owned()))?,
+                .ok_or_else(|| {
+                    RpcAdapterError::InvalidResponse("missing output index".to_owned())
+                })?,
         )?;
 
         let capacity_shannons = parse_hex_u64(
@@ -112,7 +114,10 @@ fn parse_cell_page(response: Value) -> Result<CellPage, RpcAdapterError> {
         .filter(|cursor| !cursor.is_empty())
         .map(str::to_owned);
 
-    Ok(CellPage { cells, next_cursor })
+    Ok(CellPage {
+        cells,
+        next_cursor,
+    })
 }
 
 fn parse_hex_u32(value: &str) -> Result<u32, RpcAdapterError> {
@@ -142,7 +147,8 @@ mod tests {
                 }
             }],
             "last_cursor": "0x01"
-        })).unwrap();
+        }))
+        .unwrap();
 
         assert_eq!(page.cells.len(), 1);
         assert_eq!(page.cells[0].output_index, 2);
