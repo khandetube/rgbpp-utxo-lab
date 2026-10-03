@@ -1,0 +1,9 @@
+[package]
+name = "bitcoin-pow"
+version = "0.1.0"
+edition = "2021"
+description = "Bitcoin-style double-SHA256 proof-of-work engine for reproducible testing"
+
+[dependencies]
+bitcoin = "0.32.102"
+sha2 = "0.10"
