@@ -1,0 +1,23 @@
+[Unit]
+Description=RGB++ UTXO Lab 24/7 Bitcoin Stratum Miner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/rgbpp-utxo-lab
+EnvironmentFile=/etc/rgbpp-utxo-lab/miner.env
+ExecStart=/opt/rgbpp-utxo-lab/target/release/stratum-miner
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=0
+KillSignal=SIGINT
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/rgbpp-utxo-lab
+
+[Install]
+WantedBy=multi-user.target
