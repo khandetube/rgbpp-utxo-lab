@@ -195,7 +195,6 @@ pub fn mine_stratum_job(
     let found=Arc::new(AtomicBool::new(false));
     let result=Arc::new(std::sync::Mutex::new(None));
     let threads=threads.max(1);
-    let mut handles=Vec::with_capacity(threads);
     let stats_ref=&stats;
     thread::scope(|scope| {
         for worker in 0..threads {
