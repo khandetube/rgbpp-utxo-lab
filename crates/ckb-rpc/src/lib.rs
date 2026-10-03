@@ -11,6 +11,8 @@ pub struct CkbNodeInfo {
 pub enum RpcAdapterError {
     Rpc(String),
     InvalidTransactionHash(String),
+    InvalidRequest(String),
+    InvalidResponse(String),
 }
 
 pub fn fetch_tip_block_number(rpc_url: &str) -> Result<u64, RpcAdapterError> {
