@@ -111,7 +111,7 @@ impl StratumJob {
     }
 
     pub fn hash_meets_share_target(hash: &[u8; 32], target: &BigUint) -> bool {
-        BigUint::from_bytes_be(hash) <= *target
+        &BigUint::from_bytes_be(hash) <= target
     }
 
     fn coinbase(&self, session: &StratumSession, extranonce2: &[u8]) -> Vec<u8> {
