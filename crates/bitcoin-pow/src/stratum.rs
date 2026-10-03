@@ -2,6 +2,7 @@ use crate::double_sha256;
 use bitcoin::hashes::Hash;
 use bitcoin::pow::{CompactTarget, Target};
 use bitcoin::BlockHash;
+use num_bigint::BigUint;
 use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Write};
 use std::net::{TcpStream, ToSocketAddrs};
@@ -85,6 +86,32 @@ impl StratumJob {
         if self.nbits.len() != 4 { return Err(StratumError::Protocol("nBits must be 4 bytes".into())); }
         let bits = u32::from_be_bytes(self.nbits.as_slice().try_into().unwrap());
         Ok(Target::from_compact(CompactTarget::from_consensus(bits)))
+    }
+
+    pub fn share_target_from_difficulty(value: &Value) -> Result<BigUint, StratumError> {
+        let text = value.as_str()
+            .map(str::to_owned)
+            .or_else(|| value.as_f64().map(|v| format!("{v:.18}")))
+            .ok_or_else(|| StratumError::Protocol("mining.set_difficulty target is not numeric".into()))?;
+        let (whole, frac) = text.split_once('.').unwrap_or((&text, ""));
+        if whole.is_empty() || whole.starts_with('-') {
+            return Err(StratumError::Protocol("difficulty must be positive".into()));
+        }
+        let digits = format!("{whole}{frac}");
+        let numerator = BigUint::parse_bytes(digits.as_bytes(), 10)
+            .ok_or_else(|| StratumError::Protocol("invalid difficulty".into()))?;
+        let scale = BigUint::from(10u32).pow(frac.len() as u32);
+        if numerator == BigUint::from(0u8) {
+            return Err(StratumError::Protocol("difficulty must be greater than zero".into()));
+        }
+        let diff1 = BigUint::from_bytes_be(&hex::decode(
+            "00000000ffff0000000000000000000000000000000000000000000000000000"
+        )?);
+        Ok((diff1 * scale) / numerator)
+    }
+
+    pub fn hash_meets_share_target(hash: &[u8; 32], target: &BigUint) -> bool {
+        BigUint::from_bytes_be(hash) <= *target
     }
 
     fn coinbase(&self, session: &StratumSession, extranonce2: &[u8]) -> Vec<u8> {
@@ -189,6 +216,7 @@ pub fn mine_stratum_job(
     extranonce2: Vec<u8>,
     threads: usize,
     stats: &MinerStats,
+    share_target: &BigUint,
 ) -> Option<(u32, BlockHash)> {
     let prefix=job.header_prefix(session,&extranonce2).ok()?;
     let target=job.target().ok()?;
@@ -210,7 +238,7 @@ pub fn mine_stratum_job(
                     let digest=double_sha256(&header);
                     stats_ref.hashes.fetch_add(1, Ordering::Relaxed);
                     let hash=BlockHash::from_byte_array(digest);
-                    if target.is_met_by(hash) {
+                    if target.is_met_by(hash) || StratumJob::hash_meets_share_target(&digest, share_target) {
                         if !found.swap(true,Ordering::AcqRel) {
                             *result.lock().unwrap()=Some((nonce,hash));
                         }
@@ -275,5 +303,7 @@ mod tests {
         assert_eq!(job.job_id, "job-1");
         assert_eq!(job.prevhash.len(), 32);
         assert_eq!(job.target(), Target::from_compact(CompactTarget::from_consensus(0x207fffff)));
+        let share = StratumJob::share_target_from_difficulty(&Value::String("1".into())).unwrap();
+        assert_eq!(share, BigUint::from_bytes_be(&hex::decode("00000000ffff0000000000000000000000000000000000000000000000000000").unwrap()));
     }
 }
