@@ -77,10 +77,11 @@ fn run_session(endpoint:&str, username:&str, password:&str, threads:usize) -> Re
             loop {
                 let msg=rx.recv().map_err(|_| "reader channel closed")?;
                 let msg=msg.map_err(|e| -> Box<dyn std::error::Error> { e.into() })?;
-                if let Some(job_item)=handle_control_message(&msg,&mut stream,&session,&mut share_target,&mut counter,&mut request_id,&mut pending_submissions)? {
-                    break job_item;
+                match handle_control_message(&msg,&mut stream,&session,&mut share_target,&mut counter,&mut request_id,&mut pending_submissions)? {
+                    ControlAction::NewJob(job_item) => break job_item,
+                    ControlAction::RestartMining => continue,
+                    ControlAction::None => account_submission(&msg,&pending_submissions,&stats),
                 }
-                account_submission(&msg,&pending_submissions,&stats);
             }
         };
 
@@ -101,12 +102,18 @@ fn run_session(endpoint:&str, username:&str, password:&str, threads:usize) -> Re
             match rx.recv_timeout(Duration::from_millis(250)) {
                 Ok(Err(e)) => return Err(e.into()),
                 Ok(Ok(msg)) => {
-                    if let Some((new_job,new_extranonce2))=handle_control_message(&msg,&mut stream,&session,&mut share_target,&mut counter,&mut request_id,&mut pending_submissions)? {
-                        cancel.store(true,Ordering::Release);
-                        pending_job=Some((new_job,new_extranonce2));
-                        break;
+                    match handle_control_message(&msg,&mut stream,&session,&mut share_target,&mut counter,&mut request_id,&mut pending_submissions)? {
+                        ControlAction::NewJob((new_job,new_extranonce2)) => {
+                            cancel.store(true,Ordering::Release);
+                            pending_job=Some((new_job,new_extranonce2));
+                            break;
+                        }
+                        ControlAction::RestartMining => {
+                            cancel.store(true,Ordering::Release);
+                            break;
+                        }
+                        ControlAction::None => account_submission(&msg,&pending_submissions,&stats),
                     }
-                    account_submission(&msg,&pending_submissions,&stats);
                     if handle.is_finished() { break; }
                 }
                 Err(mpsc::RecvTimeoutError::Timeout) => {
@@ -136,6 +143,13 @@ fn run_session(endpoint:&str, username:&str, password:&str, threads:usize) -> Re
     }
 }
 
+#[derive(Debug)]
+enum ControlAction {
+    None,
+    NewJob((StratumJob, Vec<u8>)),
+    RestartMining,
+}
+
 fn account_submission(msg:&Value,pending:&HashSet<u64>,stats:&MinerStats) {
     if let Some(id)=msg["id"].as_u64() {
         if pending.contains(&id) {
@@ -158,12 +172,13 @@ fn handle_control_message(
     counter:&mut u128,
     request_id:&mut u64,
     pending_submissions:&mut HashSet<u64>,
-) -> Result<Option<(StratumJob,Vec<u8>)>,Box<dyn std::error::Error>> {
+) -> Result<ControlAction,Box<dyn std::error::Error>> {
     match msg["method"].as_str() {
         Some("mining.set_difficulty") => {
             let difficulty=msg["params"].get(0).ok_or("set_difficulty missing value")?;
             *share_target=Some(StratumJob::share_target_from_difficulty(difficulty)?);
-            println!("pool share difficulty changed: {difficulty}; current work will be discarded");
+            println!("pool share difficulty changed: {difficulty}; cancelling current work");
+            return Ok(ControlAction::RestartMining);
         }
         Some("mining.set_extranonce") => {
             let params=msg["params"].as_array().ok_or("set_extranonce params missing")?;
@@ -173,7 +188,8 @@ fn handle_control_message(
             guard.extranonce1=hex::decode(extranonce1)?;
             guard.extranonce2_size=size;
             *counter=0;
-            println!("pool changed extranonce1={} extranonce2_size={size}; active work will be discarded",hex::encode(&guard.extranonce1));
+            println!("pool changed extranonce1={} extranonce2_size={size}; cancelling current work",hex::encode(&guard.extranonce1));
+            return Ok(ControlAction::RestartMining);
         }
         Some("mining.ping") => {
             let id=msg["id"].as_u64().ok_or("mining.ping id missing")?;
@@ -188,9 +204,9 @@ fn handle_control_message(
             let extranonce2=next_extranonce2(*counter,size)?;
             *counter=counter.wrapping_add(1);
             println!("new {} job={} clean={}",if job.clean_jobs {"clean"} else {"non-clean"},job.job_id,job.clean_jobs);
-            return Ok(Some((job,extranonce2)));
+            return Ok(ControlAction::NewJob((job,extranonce2)));
         }
         _ => {}
     }
-    Ok(None)
+    Ok(ControlAction::None)
 }
