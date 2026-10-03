@@ -3,14 +3,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "transfer": "tsx transfer.ts"
+    "transfer": "tsx transfer.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "dotenv": "^16.4.7",
-    "rgbpp": "0.7.3"
+    "@ckb-ccc/rgbpp": "1.0.0",
+    "@ckb-ccc/shell": "1.1.21",
+    "dotenv": "^16.4.7"
   },
   "devDependencies": {
     "tsx": "4.16.3",
-    "typescript": "5.4.3"
+    "typescript": "5.9.2"
   }
 }
