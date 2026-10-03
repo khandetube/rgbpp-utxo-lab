@@ -1,0 +1,42 @@
+name: Bitcoin Mainnet Miner
+
+on:
+  workflow_dispatch:
+    inputs:
+      payout_address:
+        description: "Bitcoin Mainnet payout address"
+        required: true
+        default: "bc1qrwhe5l4wvx86g6rs4n3tpyr85j0xr3cs6lex4d"
+      max_attempts:
+        description: "Maximum SHA256d attempts (0 = unlimited)"
+        required: true
+        default: "1000000"
+      submit:
+        description: "Broadcast a solved Mainnet block through the configured operator-controlled node"
+        required: true
+        type: choice
+        options: ["NO", "YES"]
+        default: "NO"
+
+jobs:
+  mine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build and run guarded Mainnet miner
+        env:
+          BITCOIN_MAINNET_RPC_URL: ${{ secrets.BITCOIN_MAINNET_RPC_URL }}
+          BITCOIN_MAINNET_RPC_USER: ${{ secrets.BITCOIN_MAINNET_RPC_USER }}
+          BITCOIN_MAINNET_RPC_PASSWORD: ${{ secrets.BITCOIN_MAINNET_RPC_PASSWORD }}
+          BITCOIN_MAINNET_PAYOUT_ADDRESS: ${{ inputs.payout_address }}
+          BITCOIN_MAINNET_SUBMIT: ${{ inputs.submit }}
+          BITCOIN_MAINNET_CONFIRM: ${{ inputs.submit == 'YES' && 'YES' || 'NO' }}
+          MAX_ATTEMPTS: ${{ inputs.max_attempts }}
+        run: |
+          set -euo pipefail
+          test -n "$BITCOIN_MAINNET_RPC_URL"
+          test -n "$BITCOIN_MAINNET_RPC_USER"
+          test -n "$BITCOIN_MAINNET_RPC_PASSWORD"
+          cargo run -p bitcoin-pow --bin mainnet_miner --release
