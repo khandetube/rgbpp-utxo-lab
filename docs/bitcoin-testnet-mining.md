@@ -33,8 +33,15 @@ For a real reward, use a scriptPubKey controlled by the operator. If no payout s
 
 ## Current infrastructure constraint
 
-Testnet3 support is deprecated in modern Bitcoin Core releases; Bitcoin Core explicitly recommends moving new testing to Testnet4.
+Testnet3 support is deprecated in modern Bitcoin Core releases; current Bitcoin Core documentation recommends moving new testing to Testnet4.
 
 Therefore this repository does **not** claim that a current public Testnet3 node is available. A real Testnet3 mining run requires access to an existing operator-controlled Testnet3-compatible node or mining service. No third-party credentials, leaked keys, mainnet funds, or fabricated block/TX identifiers are used.
 
 For reproducible engineering tests, the same block-building path should also be exercised against regtest/Testnet4 infrastructure. Bitcoin Core documents regtest as the chain intended for regression testing and application development.
+
+
+## Testnet4 direction
+
+Regtest remains the deterministic integration environment. Testnet3 remains supported where the RGB++ testnet stack requires it, but new standalone Bitcoin mining validation should be extended to Testnet4 because current Bitcoin Core supports a dedicated Testnet4 chain and BIP94 changes its difficulty handling.
+
+The Mainnet miner remains a separate guarded path and is not used by CI.
