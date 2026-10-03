@@ -22,6 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("payout username={username}");
     println!("threads={threads}");
     println!("Live job rollover is enabled; stale work is cancelled.");
+    println!("Protocol: Stratum V1; set_difficulty applies to subsequent work, per protocol.");
     println!("Uses an external operator-controlled machine; it is not a GitHub-hosted miner.");
 
     let mut endpoint_index=0usize;
@@ -177,8 +178,7 @@ fn handle_control_message(
         Some("mining.set_difficulty") => {
             let difficulty=msg["params"].get(0).ok_or("set_difficulty missing value")?;
             *share_target=Some(StratumJob::share_target_from_difficulty(difficulty)?);
-            println!("pool share difficulty changed: {difficulty}; cancelling current work");
-            return Ok(ControlAction::RestartMining);
+            println!("pool share difficulty changed: {difficulty}; waiting for next job before applying it");
         }
         Some("mining.set_extranonce") => {
             let params=msg["params"].as_array().ok_or("set_extranonce params missing")?;
@@ -188,8 +188,7 @@ fn handle_control_message(
             guard.extranonce1=hex::decode(extranonce1)?;
             guard.extranonce2_size=size;
             *counter=0;
-            println!("pool changed extranonce1={} extranonce2_size={size}; cancelling current work",hex::encode(&guard.extranonce1));
-            return Ok(ControlAction::RestartMining);
+            println!("pool changed extranonce1={} extranonce2_size={size}; waiting for next job",hex::encode(&guard.extranonce1));
         }
         Some("mining.ping") => {
             let id=msg["id"].as_u64().ok_or("mining.ping id missing")?;
