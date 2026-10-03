@@ -70,7 +70,7 @@ pub fn build_and_optionally_send(config: TransferConfig) -> Result<H256> {
 
     let output = CellOutput::new_builder()
         .lock(Script::from(&config.receiver))
-        .capacity(config.capacity.0.pack())
+        .capacity(config.capacity.0)
         .build();
 
     let builder = CapacityTransferBuilder::new(vec![(output, Bytes::default())]);
