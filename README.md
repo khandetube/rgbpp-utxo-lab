@@ -65,3 +65,13 @@ The core examples are deterministic and do not require network access.
 - Reproducible local tests
 - Small, reviewable modules
 - Explicit security boundaries
+## Operational milestones
+
+- Rust UTXO and deterministic selection
+- CKB Cell modeling and capacity invariants
+- CKB RPC/indexer integration
+- Official CKB SDK transaction construction and guarded testnet broadcast path
+- rust-bitcoin outpoint primitives
+- RGB++ SDK 0.7.3 TypeScript integration for real xUDT transfer construction, PSBT generation, guarded BTC broadcast, and RGB++ queue submission
+
+The final end-to-end RGB++ execution requires user-supplied, funded testnet BTC/CKB accounts, an actual RGB++ xUDT asset, live RGB++ lock args/UTXOs, and a valid service token. Those are external chain state and secrets, so the repository never invents or stores them.
