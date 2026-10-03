@@ -30,7 +30,10 @@ pub fn select_largest_first(mut utxos: Vec<Utxo>, target: u64) -> Result<Selecti
     let mut total = 0u64;
     for u in utxos {
         selected.push(u);
-        total = total.checked_add(selected.last().unwrap().value).expect("value overflow");
+        total = match total.checked_add(selected.last().unwrap().value) {
+            Some(value) => value,
+            None => return Err(SelectionError::InsufficientFunds { available: u64::MAX, required: target }),
+        };
         if total >= target {
             return Ok(Selection { inputs: selected, total, change: total - target });
         }
