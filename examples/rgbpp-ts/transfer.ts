@@ -1,7 +1,7 @@
 import 'dotenv/config';
-import { buildRgbppLockArgs, Collector } from 'rgbpp/ckb';
+import { Collector } from 'rgbpp/ckb';
 import { buildRgbppTransferTx } from 'rgbpp';
-import { AddressType, BtcAssetsApi, DataSource, NetworkType, bitcoin, ECPair } from 'rgbpp/btc';
+import { AddressType, BtcAssetsApi, DataSource, NetworkType, bitcoin, ECPair, transactionToHex } from 'rgbpp/btc';
 import { remove0x } from 'rgbpp/btc';
 
 const required = (name: string): string => {
@@ -73,3 +73,48 @@ console.log(JSON.stringify({
 
 // Deliberately stop before signing/broadcasting.
 // The PSBT must be independently reviewed before a private key is used.
+
+
+const shouldBroadcast = process.env.BROADCAST === 'true';
+if (shouldBroadcast) {
+  if (addressType !== AddressType.P2WPKH) {
+    throw new Error('This example only enables the guarded broadcast path for P2WPKH. Use the SDK P2TR signer flow separately.');
+  }
+
+  const psbt = bitcoin.Psbt.fromHex(result.btcPsbtHex);
+  for (let i = 0; i < psbt.data.inputs.length; i += 1) {
+    psbt.signInput(i, keyPair);
+  }
+  psbt.finalizeAllInputs();
+  const tx = psbt.extractTransaction(true);
+  const txHex = tx.toHex();
+  const { txid } = await service.sendBtcTransaction(txHex);
+  console.log('btc_txid=' + txid);
+
+  await service.sendRgbppCkbTransaction({
+    btc_txid: txid,
+    ckb_virtual_result: result.ckbVirtualTxResult,
+  });
+  console.log('RGB++ CKB transaction submitted to the queue.');
+
+  const interval = setInterval(async () => {
+    try {
+      const state = await service.getRgbppTransactionState(txid);
+      console.log('rgbpp_state=' + state.state);
+      if (state.state === 'completed' || state.state === 'failed') {
+        clearInterval(interval);
+        if (state.state === 'completed') {
+          const hash = await service.getRgbppTransactionHash(txid);
+          console.log('ckb_txhash=' + hash.txhash);
+        } else {
+          console.error('rgbpp_failed=' + state.failedReason);
+          process.exitCode = 1;
+        }
+      }
+    } catch (error) {
+      clearInterval(interval);
+      console.error(error);
+      process.exitCode = 1;
+    }
+  }, 30_000);
+}
