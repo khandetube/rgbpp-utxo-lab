@@ -20,6 +20,7 @@ A transparent, reproducible engineering reference for developers building Bitcoi
 - RGB++ xUDT transfer pipeline on Bitcoin Testnet3
 - fail-closed network, secret and broadcast validation
 - public and private testnet preflight paths
+- guarded GitHub Actions workflow for reproducible Testnet3 execution
 - reproducible CI and live-testnet runbook
 
 ## RGB++ transfer path
@@ -33,6 +34,30 @@ The implementation follows the RGB++ SDK model; protocol-specific behavior is ke
 See [docs/live-testnet-verification.md](docs/live-testnet-verification.md).
 
 The project never fabricates transaction IDs, balances, assets, credentials or successful broadcasts. A real end-to-end claim is made only after a real Testnet3 transaction is independently verifiable.
+
+### GitHub Actions execution
+
+Two manual workflows are provided:
+
+1. **RGB++ Live Testnet Preflight** — public connectivity and protocol-script checks; no private keys and no broadcast.
+2. **RGB++ Testnet Transfer** — private, operator-controlled execution. It runs typecheck and private preflight first. Broadcast is disabled unless the workflow input explicitly enables it **and** the operator types `YES` in the separate confirmation field.
+
+The transfer workflow expects these GitHub Actions Secrets:
+
+- `UTXO_BASED_CHAIN_PRIVATE_KEY`
+- `UTXO_BASED_CHAIN_ADDRESS_TYPE`
+- `CKB_SECP256K1_PRIVATE_KEY`
+- `BTC_ASSETS_API_TOKEN`
+- `BTC_ASSETS_API_ORIGIN`
+- `UDT_TYPE_ARGS`
+- `RGBPP_RECEIVER_BTC_ADDRESS`
+
+Optional repository Variables:
+
+- `RGBPP_TRANSFER_AMOUNT` (default `1`)
+- `RGBPP_FEE_RATE` (default `28`)
+
+Secrets must contain only operator-controlled **Bitcoin Testnet3 / CKB Testnet** credentials. Never use mainnet keys, leaked credentials, or third-party wallets.
 
 ## Project structure
 
