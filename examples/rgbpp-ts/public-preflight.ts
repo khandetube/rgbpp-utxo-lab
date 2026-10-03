@@ -26,7 +26,8 @@ const rgbppUdtClient = new RgbppUdtClient(
 );
 const rgbppScriptInfos = await rgbppUdtClient.getRgbppScriptInfos();
 
-if (rgbppScriptInfos.length === 0) {
+const rgbppScriptNames = Object.keys(rgbppScriptInfos);
+if (rgbppScriptNames.length === 0) {
   throw new Error("RGB++ script info resolution returned no scripts");
 }
 
@@ -34,4 +35,4 @@ console.log("public_preflight=ok");
 console.log("network=", network);
 console.log("ckb_testnet_tip=", tip.toString());
 console.log("xu_dt_cell_deps=", xuDtScriptInfo.cellDeps.length);
-console.log("rgbpp_script_infos=", rgbppScriptInfos.length);
+console.log("rgbpp_script_infos=", rgbppScriptNames.join(","));
