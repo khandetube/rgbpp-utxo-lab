@@ -32,6 +32,6 @@ The final end-to-end transaction still depends on funded testnet accounts, a rea
 
 The example now resolves the deployed CKB `KnownScript.XUdt` and its cell dependency through the CKB client. You only need the **unique xUDT type arguments** for the real RGB++ asset.
 
-The RGB++ official UDT documentation describes the transfer flow as: build the CKB partial transaction, build/sign the BTC PSBT, inject the BTC transaction ID, construct the RGB++ witness, then submit the final CKB transaction. citeturn0search0
+The RGB++ official UDT documentation describes the transfer flow as: build the CKB partial transaction, build/sign the BTC PSBT, inject the BTC transaction ID, construct the RGB++ witness, then submit the final CKB transaction.
 
-For Meepo Testnet, the official RGB++ resources publish the deployed RGB++ script parameters and the Testnet3 BTC-assets API endpoints. citeturn0search1
+For Meepo Testnet, the official RGB++ resources publish the deployed RGB++ script parameters and the Testnet3 BTC-assets API endpoints.
