@@ -49,6 +49,22 @@ impl ResourceFabric {
 
     pub fn set_state(&mut self, id: &str, state: ResourceState) -> bool {
         if let Some(resource) = self.resources.get_mut(id) {
+            let valid = match state {
+                ResourceState::Discovered => true,
+                ResourceState::Authorized => resource.operator_approved,
+                ResourceState::Connected => {
+                    resource.operator_approved
+                        && matches!(resource.state, ResourceState::Authorized | ResourceState::Connected)
+                }
+                ResourceState::Verified => {
+                    resource.operator_approved
+                        && matches!(resource.state, ResourceState::Connected | ResourceState::Verified)
+                }
+                ResourceState::Rejected => true,
+            };
+            if !valid {
+                return false;
+            }
             resource.state = state;
             true
         } else {
@@ -109,6 +125,24 @@ mod tests {
     }
 
     #[test]
+    fn invalid_state_transitions_are_rejected() {
+        let mut fabric = ResourceFabric::default();
+        fabric.register(ResourceOffer {
+            id: "worker-1".into(),
+            kind: ResourceKind::OwnedWorker,
+            endpoint: "127.0.0.1:3333".into(),
+            advertised_hashrate_hs: None,
+            state: ResourceState::Discovered,
+            operator_approved: false,
+        });
+        assert!(!fabric.set_state("worker-1", ResourceState::Connected));
+        assert!(!fabric.set_state("worker-1", ResourceState::Verified));
+        assert!(fabric.authorize("worker-1"));
+        assert!(fabric.set_state("worker-1", ResourceState::Connected));
+        assert!(fabric.set_state("worker-1", ResourceState::Verified));
+    }
+
+    #[test]
     fn only_authorized_verified_workers_count() {
         let mut fabric = ResourceFabric::default();
         fabric.register(ResourceOffer {
@@ -120,6 +154,8 @@ mod tests {
             operator_approved: false,
         });
         assert!(fabric.authorize("worker-1"));
+        assert!(!fabric.set_state("worker-1", ResourceState::Verified));
+        assert!(fabric.set_state("worker-1", ResourceState::Connected));
         assert!(fabric.set_state("worker-1", ResourceState::Verified));
 
         let mut observed = BTreeMap::new();
