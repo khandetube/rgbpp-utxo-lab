@@ -165,6 +165,17 @@ impl StratumJob {
         Ok(((base & !mask) | (bits & mask)).to_le_bytes())
     }
 
+    pub fn header_prefix_with_version_bits(&self, session: &StratumSession, extranonce2: &[u8], version_bits: Option<u32>) -> Result<[u8;80], StratumError> {
+        let mut header = self.header_prefix(session, extranonce2)?;
+        if let Some(bits) = version_bits {
+            let base = u32::from_le_bytes(header[0..4].try_into().unwrap());
+            let mask = session.version_mask;
+            let version = (base & !mask) | (bits & mask);
+            header[0..4].copy_from_slice(&version.to_le_bytes());
+        }
+        Ok(header)
+    }
+
     pub fn nonce_header(prefix: &[u8;80], nonce: u32) -> [u8;80] {
         let mut header=*prefix;
         header[76..80].copy_from_slice(&nonce.to_le_bytes());
@@ -267,7 +278,20 @@ pub fn mine_stratum_job_cancelable(
     share_target: &BigUint,
     cancel: &AtomicBool,
 ) -> Option<(u32, BlockHash)> {
-    let prefix=job.header_prefix(session,&extranonce2).ok()?;
+    mine_stratum_job_cancelable_with_version(job, session, extranonce2, threads, stats, share_target, cancel, None)
+}
+
+pub fn mine_stratum_job_cancelable_with_version(
+    job: &StratumJob,
+    session: &StratumSession,
+    extranonce2: Vec<u8>,
+    threads: usize,
+    stats: &MinerStats,
+    share_target: &BigUint,
+    cancel: &AtomicBool,
+    version_bits: Option<u32>,
+) -> Option<(u32, BlockHash)> {
+    let prefix=job.header_prefix_with_version_bits(session,&extranonce2,version_bits).ok()?;
     let target=job.target().ok()?;
     let found=Arc::new(AtomicBool::new(false));
     let result=Arc::new(std::sync::Mutex::new(None));
