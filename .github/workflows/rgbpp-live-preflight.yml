@@ -24,4 +24,4 @@ jobs:
         with:
           node-version: 22
       - run: pnpm install --no-frozen-lockfile
-      - run: pnpm run public-preflight
+      - run: timeout --signal=TERM --kill-after=10s 120s pnpm run public-preflight
